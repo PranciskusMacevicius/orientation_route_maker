@@ -120,6 +120,14 @@ public class PDFGenerator {
                         // Draw cell border
                         contentStream.addRect(cellX, cellY, cellWidth, cellHeight);
                         contentStream.stroke();
+                        
+                        // Draw additional thick bottom border if there's no waypoint below this cell
+                        if (i + cols >= actualWaypoints) {
+                            contentStream.setLineWidth(2f);
+                            contentStream.moveTo(cellX, cellY);
+                            contentStream.lineTo(cellX + cellWidth, cellY);
+                            contentStream.stroke();
+                        }
                     }
                     
                     // Draw thin internal lines for property separation
