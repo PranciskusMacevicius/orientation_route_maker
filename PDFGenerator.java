@@ -57,7 +57,7 @@ public class PDFGenerator {
     private static void createActualPDF(List<WayPoint> wayPoints, File outputFile) throws Exception {
         // Create a proper PDF using basic PDF structure
         try (FileOutputStream fos = new FileOutputStream(outputFile);
-             java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(fos, "ISO-8859-1")) {
+             java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(fos, "UTF-8")) {
             
             // Calculate pages and objects
             int totalPages = (int) Math.ceil((double) wayPoints.size() / POINTS_PER_PAGE);
@@ -170,57 +170,110 @@ public class PDFGenerator {
     private static String createPageContent(List<WayPoint> wayPoints, int pageIndex, int totalPages) {
         StringBuilder content = new StringBuilder();
         
-        // Begin text
-        content.append("BT\n");
-        content.append("/F1 14 Tf\n");
-        
-        // Title
-        content.append("50 800 Td\n");
-        String title = "RouteMaker - Marsruto Taskai";
-        if (totalPages > 1) {
-            title += " (Page " + (pageIndex + 1) + " of " + totalPages + ")";
-        }
-        content.append("(").append(title).append(") Tj\n");
-        
-        // Reset position for waypoints
-        content.append("0 -50 Td\n");
-        content.append("/F1 10 Tf\n");
-        
         // Calculate which waypoints to show on this page
         int startIndex = pageIndex * POINTS_PER_PAGE;
         int endIndex = Math.min(startIndex + POINTS_PER_PAGE, wayPoints.size());
         
-        // Draw waypoints in 2x4 grid
+        // Grid dimensions - full page, no title, no margins
         int cols = 2;
         int rows = 4;
-        double cellWidth = 250;
-        double cellHeight = 150;
+        double pageWidth = 595;  // A4 width
+        double pageHeight = 842; // A4 height
+        double cellWidth = pageWidth / cols;
+        double cellHeight = pageHeight / rows;
+        double startX = 0;
+        double startY = pageHeight;
         
-        for (int i = 0; i < (endIndex - startIndex); i++) {
+        // Only draw borders for cells that have waypoints
+        int actualWaypoints = Math.min(endIndex - startIndex, POINTS_PER_PAGE);
+        
+        if (actualWaypoints > 0) {
+            content.append("q\n"); // Save graphics state
+            content.append("1 0 0 1 0 0 cm\n"); // Identity matrix
+            content.append("0 0 0 RG\n"); // Black stroke color
+            
+            // Draw thick borders for point separation
+            content.append("2 w\n"); // Thick line width for point separation
+            
+            // Draw borders only around cells that have waypoints
+            for (int i = 0; i < actualWaypoints; i++) {
+                int row = i / cols;
+                int col = i % cols;
+                
+                double cellX = startX + col * cellWidth;
+                double cellY = startY - row * cellHeight;
+                
+                // Draw cell border
+                content.append(cellX).append(" ").append(cellY - cellHeight).append(" m\n");
+                content.append(cellX + cellWidth).append(" ").append(cellY - cellHeight).append(" l\n");
+                content.append(cellX + cellWidth).append(" ").append(cellY).append(" l\n");
+                content.append(cellX).append(" ").append(cellY).append(" l\n");
+                content.append("h\n");
+                content.append("S\n");
+            }
+            
+            // Draw thin internal table lines for property separation
+            content.append("0.5 w\n"); // Thin line width for property separation
+            for (int i = 0; i < actualWaypoints; i++) {
+                int row = i / cols;
+                int col = i % cols;
+                
+                double cellX = startX + col * cellWidth;
+                double cellY = startY - row * cellHeight;
+                
+                // Draw internal table lines (3 lines to create 4 rows for the 4 properties)
+                double tableRowHeight = cellHeight / 4;
+                for (int tableRow = 1; tableRow < 4; tableRow++) {
+                    double y = cellY - tableRow * tableRowHeight;
+                    content.append(cellX).append(" ").append(y).append(" m\n");
+                    content.append(cellX + cellWidth).append(" ").append(y).append(" l\n");
+                    content.append("S\n");
+                }
+            }
+            
+            content.append("Q\n"); // Restore graphics state
+        }
+        
+        
+        // Add waypoint text in each cell - centered both horizontally and vertically
+        for (int i = 0; i < actualWaypoints; i++) {
             WayPoint wp = wayPoints.get(startIndex + i);
             
             int row = i / cols;
             int col = i % cols;
             
-            double x = col * cellWidth;
-            double y = -(row * cellHeight + 100);
+            double cellX = startX + col * cellWidth;
+            double cellY = startY - row * cellHeight;
+            double tableRowHeight = cellHeight / 4;
             
-            // Move to cell position
-            content.append(x - (col > 0 ? cellWidth : 0)).append(" ").append(y - (row > 0 ? -cellHeight : 0)).append(" Td\n");
+            // Array of texts for each row
+            String[] texts = {
+                "Taškas: " + wp.getDisplayNumber(),
+                "Koordinatės: " + wp.getCurrentCoordinates(),
+                "Raidė: " + wp.getLetter(),
+                "Sekančio taško koordinatės: " + wp.getNextPointCoordinates()
+            };
             
-            // Draw waypoint info
-            content.append("(Taskas: ").append(wp.getDisplayNumber()).append(") Tj\n");
-            content.append("0 -15 Td\n");
-            content.append("(Koordinates: ").append(wp.getCurrentCoordinates()).append(") Tj\n");
-            content.append("0 -15 Td\n");
-            content.append("(Raide: ").append(wp.getLetter()).append(") Tj\n");
-            content.append("0 -15 Td\n");
-            content.append("(Sekancio tasko koordinates: ").append(wp.getNextPointCoordinates()).append(") Tj\n");
-            content.append("0 -15 Td\n");
+            // Draw each text row centered within its table row
+            for (int textRow = 0; textRow < 4; textRow++) {
+                String text = texts[textRow];
+                
+                content.append("BT\n");
+                content.append("/F1 10 Tf\n");
+                
+                // Calculate horizontal centering
+                double textWidth = text.length() * 6; // Approximate character width for size 10 font
+                double textX = cellX + (cellWidth - textWidth) / 2;
+                
+                // Calculate vertical centering within the table row
+                double rowCenterY = cellY - (textRow * tableRowHeight) - (tableRowHeight / 2) + 3; // +3 for baseline adjustment
+                
+                // Position and draw text
+                content.append(textX).append(" ").append(rowCenterY).append(" Td\n");
+                content.append("(").append(text).append(") Tj\n");
+                content.append("ET\n");
+            }
         }
-        
-        // End text
-        content.append("ET\n");
         
         return content.toString();
     }
