@@ -126,9 +126,6 @@ public class RouteMaker extends JFrame {
     }
     
     private void generatePDF() {
-        // Show progress message
-        JOptionPane.showMessageDialog(this, "Generating PDF... Please wait.", "PDF Generation", JOptionPane.INFORMATION_MESSAGE);
-        
         // Run PDF generation in background thread to avoid blocking UI
         new Thread(() -> {
             try {
@@ -150,9 +147,6 @@ public class RouteMaker extends JFrame {
                     
                     try {
                         PDFGenerator.generateRoutePDF(waypoints);
-                        SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(this, "PDF generated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                        });
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(() -> {
                             JOptionPane.showMessageDialog(this, "Error generating PDF: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
