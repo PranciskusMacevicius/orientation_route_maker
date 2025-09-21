@@ -57,28 +57,34 @@ public class PDFGenerator {
             // Load a Unicode-compatible font
             PDFont font;
             try {
-                // Try to load Arial font with Unicode support
-                font = PDType0Font.load(document, PDFGenerator.class.getResourceAsStream("/arial.ttf"));
-            } catch (Exception e) {
-                // Fallback to a system font that supports Unicode
-                try {
-                    // Try to load a system font
-                    File fontFile = new File("C:/Windows/Fonts/arial.ttf");
+                // Try to load a system font that supports Unicode
+                File fontFile = new File("C:/Windows/Fonts/arial.ttf");
+                if (fontFile.exists()) {
+                    System.out.println("Loading Arial font from: " + fontFile.getAbsolutePath());
+                    font = PDType0Font.load(document, new FileInputStream(fontFile));
+                    System.out.println("Arial font loaded successfully!");
+                } else {
+                    // Try Calibri
+                    fontFile = new File("C:/Windows/Fonts/calibri.ttf");
                     if (fontFile.exists()) {
+                        System.out.println("Loading Calibri font from: " + fontFile.getAbsolutePath());
                         font = PDType0Font.load(document, new FileInputStream(fontFile));
+                        System.out.println("Calibri font loaded successfully!");
                     } else {
-                        // Try Calibri
-                        fontFile = new File("C:/Windows/Fonts/calibri.ttf");
+                        // Try DejaVu Sans
+                        fontFile = new File("C:/Windows/Fonts/DejaVuSans.ttf");
                         if (fontFile.exists()) {
+                            System.out.println("Loading DejaVu Sans font from: " + fontFile.getAbsolutePath());
                             font = PDType0Font.load(document, new FileInputStream(fontFile));
+                            System.out.println("DejaVu Sans font loaded successfully!");
                         } else {
-                            // Use built-in font as last resort
-                            throw new Exception("No Unicode font available. Please install Arial or Calibri font.");
+                            throw new Exception("No Unicode font found. Checked arial.ttf, calibri.ttf, and DejaVuSans.ttf in C:/Windows/Fonts/");
                         }
                     }
-                } catch (Exception e2) {
-                    throw new Exception("Could not load Unicode font: " + e2.getMessage());
                 }
+            } catch (Exception e) {
+                System.err.println("Font loading error: " + e.getMessage());
+                throw new Exception("Could not load Unicode font: " + e.getMessage());
             }
             
             int totalPages = (int) Math.ceil((double) wayPoints.size() / POINTS_PER_PAGE);
@@ -155,6 +161,12 @@ public class PDFGenerator {
                             "Raidė: " + wp.getLetter(),
                             "Sekančio taško koordinatės: " + wp.getNextPointCoordinates()
                         };
+                        
+                        // Debug: print the text to see what we're actually getting
+                        System.out.println("Debug - Display number: '" + wp.getDisplayNumber() + "'");
+                        for (int debugIdx = 0; debugIdx < texts.length; debugIdx++) {
+                            System.out.println("Debug - Text[" + debugIdx + "]: '" + texts[debugIdx] + "'");
+                        }
                         
                         // Draw each text row centered within its table row
                         for (int textRow = 0; textRow < 4; textRow++) {
