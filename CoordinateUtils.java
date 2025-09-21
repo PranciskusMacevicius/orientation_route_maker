@@ -17,35 +17,25 @@ public class CoordinateUtils {
         double easting = utm[0];
         double northing = utm[1];
 
-        // Get first 4 digits for PDF format
-        int eastingFirst4 = ((int) Math.abs(easting)) / 100;  // Remove last 2 digits, keep first 4
-        int northingFirst4 = ((int) Math.abs(northing)) / 1000; // Remove last 3 digits, keep first 4
+        // Get last 4 digits for easting, rearrange last 4 digits for northing
+        int eastingLast4 = ((int) Math.abs(easting)) % 10000;  // Get last 4 digits (e.g., 331609 → 1609)
+        int northingLast4 = ((int) Math.abs(northing)) % 10000; // Get last 4 digits (e.g., 6098971 → 8971)
+        
+        // Rearrange northing digits: 9239 → 9923 (pattern: digit[0], digit[3], digit[1], digit[2])
+        String northingStr = String.format("%04d", northingLast4);
+        int northingRearranged = Integer.parseInt("" + northingStr.charAt(0) + northingStr.charAt(3) + northingStr.charAt(1) + northingStr.charAt(2));
 
-        return String.format("%04d %04d", eastingFirst4, northingFirst4);
+        return String.format("%04d %04d", eastingLast4, northingRearranged);
     }
     
     public static String toFullUTM(double latitude, double longitude) {
         // Determine the correct UTM zone based on longitude
         int zone = (int) Math.floor((longitude + 180) / 6) + 1;
         
-        // Debug: Let's try both zones to see which is more accurate
-        double[] utm34 = convertWGS84ToUTM(latitude, longitude, 34);
-        double[] utm35 = convertWGS84ToUTM(latitude, longitude, 35);
-        
         // Use the calculated zone
-        double[] utmCorrect = convertWGS84ToUTM(latitude, longitude, zone);
-        
-        // Debug output
-        System.out.println("DEBUG: Lat=" + String.format("%.6f", latitude) + "°, Lon=" + String.format("%.6f", longitude) + "°");
-        System.out.println("DEBUG: Calculated zone=" + zone);
-        System.out.println("DEBUG: Zone 34 -> E=" + (int)utm34[0] + ", N=" + (int)utm34[1]);
-        System.out.println("DEBUG: Zone 35 -> E=" + (int)utm35[0] + ", N=" + (int)utm35[1]);
-        System.out.println("DEBUG: Zone " + zone + " -> E=" + (int)utmCorrect[0] + ", N=" + (int)utmCorrect[1]);
-        
-        // For Lithuania (longitude ~24.37), the correct zone should be 35
-        // But let's use the calculated zone
-        double easting = utmCorrect[0];
-        double northing = utmCorrect[1];
+        double[] utm = convertWGS84ToUTM(latitude, longitude, zone);
+        double easting = utm[0];
+        double northing = utm[1];
         
         return String.format("%dU %06.0f %07.0f", zone, Math.abs(easting), Math.abs(northing));
     }
@@ -169,7 +159,6 @@ public class CoordinateUtils {
         double lat = Math.toRadians(latitude);
         double lon = Math.toRadians(longitude);
         double lon0 = Math.toRadians((zone - 1) * 6 - 180 + 3); // Central meridian
-        System.out.println("DEBUG: Zone " + zone + " central meridian = " + Math.toDegrees(lon0) + "°");
         
         double dLon = lon - lon0;
         

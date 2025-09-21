@@ -143,6 +143,15 @@ public class RouteMaker extends JFrame {
                         return;
                     }
                     
+                    // Print the EXACT coordinates being used for PDF generation
+                    System.out.println("\n=== PDF Generation - Using These Coordinates ===");
+                    for (WayPoint wp : waypoints) {
+                        String fullUtmCoords = CoordinateUtils.toFullUTM(wp.getLatitude(), wp.getLongitude());
+                        String geoCoords = String.format("%.6f°, %.6f°", wp.getLatitude(), wp.getLongitude());
+                        System.out.println("PDF Waypoint " + wp.getNumber() + ": " + geoCoords + " -> " + fullUtmCoords + " (Letter: " + wp.getLetter() + ")");
+                    }
+                    System.out.println("===============================================\n");
+                    
                     // Update next point coordinates for each waypoint
                     for (int i = 0; i < waypoints.size(); i++) {
                         if (i < waypoints.size() - 1) {
