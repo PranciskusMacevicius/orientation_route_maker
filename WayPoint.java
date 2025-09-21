@@ -91,12 +91,12 @@ public class WayPoint {
     }
     
     public String getCurrentCoordinates() {
-        return CoordinateUtils.toMGRS(latitude, longitude);
+        return CoordinateUtils.toUTM(latitude, longitude);
     }
     
     public String getNextPointCoordinates() {
         if (nextPoint != null) {
-            return CoordinateUtils.toMGRS(nextPoint.getLatitude(), nextPoint.getLongitude());
+            return CoordinateUtils.toUTM(nextPoint.getLatitude(), nextPoint.getLongitude());
         }
         return "N/A";
     }

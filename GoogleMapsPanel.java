@@ -291,9 +291,9 @@ public class GoogleMapsPanel extends JPanel {
                                     wp.setLetter(letter);
                                     waypoints.add(wp);
                                     
-                                    // Print full MGRS coordinates to console
-                                    String fullMgrsCoords = CoordinateUtils.toFullMGRS(lat, lng);
-                                    System.out.println("Waypoint " + number + ": " + fullMgrsCoords);
+               // Print full UTM coordinates to console
+               String fullUtmCoords = CoordinateUtils.toFullUTM(lat, lng);
+               System.out.println("Waypoint " + number + ": " + String.format("%.6f°, %.6f°", lat, lng) + " -> " + fullUtmCoords);
                                 } catch (NumberFormatException e) {
                                     System.err.println("Error parsing waypoint: " + e.getMessage());
                                 }

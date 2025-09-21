@@ -311,7 +311,7 @@ public class MapPanel extends JPanel {
         g2d.drawString("View: " + (satelliteView ? "Satellite" : "Normal"), 20, 30);
         g2d.drawString("Zoom: " + String.format("%.1fx", zoomLevel), 20, 50);
         g2d.drawString("Points: " + wayPoints.size(), 20, 70);
-        g2d.drawString("Center: " + CoordinateUtils.toMGRS(centerLatitude, centerLongitude), 20, 90);
+        g2d.drawString("Center: " + CoordinateUtils.toFullUTM(centerLatitude, centerLongitude), 20, 90);
     }
     
     // Getters and setters

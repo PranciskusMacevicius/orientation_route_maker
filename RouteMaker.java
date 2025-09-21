@@ -176,12 +176,13 @@ public class RouteMaker extends JFrame {
                 return;
             }
             
-            System.out.println("\n=== Current Waypoints ===");
-            for (WayPoint wp : waypoints) {
-                String fullMgrsCoords = CoordinateUtils.toFullMGRS(wp.getLatitude(), wp.getLongitude());
-                System.out.println("Waypoint " + wp.getNumber() + ": " + fullMgrsCoords + " (Letter: " + wp.getLetter() + ")");
-            }
-            System.out.println("========================\n");
+               System.out.println("\n=== Current Waypoints ===");
+               for (WayPoint wp : waypoints) {
+                   String fullUtmCoords = CoordinateUtils.toFullUTM(wp.getLatitude(), wp.getLongitude());
+                   String geoCoords = String.format("%.6f°, %.6f°", wp.getLatitude(), wp.getLongitude());
+                   System.out.println("Waypoint " + wp.getNumber() + ": " + geoCoords + " -> " + fullUtmCoords + " (Letter: " + wp.getLetter() + ")");
+               }
+               System.out.println("========================\n");
         });
     }
     

@@ -5,55 +5,49 @@ public class CoordinateUtils {
     public static final double DEFAULT_LONGITUDE = 24.370464;
     
     /**
-     * Converts latitude and longitude to MGRS format (simplified approximation)
+     * Converts latitude and longitude to UTM format (simplified approximation)
      * This is a simplified implementation for demonstration purposes.
-     * In a real application, you would use a proper MGRS conversion library.
+     * In a real application, you would use a proper UTM conversion library.
      */
-    public static String toMGRS(double latitude, double longitude) {
-        // This is a simplified MGRS-like format for demonstration
-        // Real MGRS conversion requires complex UTM calculations
-        
-        // Convert to pseudo-UTM coordinates (simplified)
+    public static String toUTM(double latitude, double longitude) {
+        // Calculate the correct UTM zone
         int zone = (int) Math.floor((longitude + 180) / 6) + 1;
         
-        // Generate grid square letters (simplified approach)
-        char gridSquare1 = (char) ('A' + ((int) Math.abs(latitude * 10) % 26));
-        char gridSquare2 = (char) ('A' + ((int) Math.abs(longitude * 10) % 26));
-        
-        // Calculate easting and northing (simplified)
-        int easting = (int) Math.abs((longitude - Math.floor(longitude)) * 100000);
-        int northing = (int) Math.abs((latitude - Math.floor(latitude)) * 100000);
-        
-        // Format as MGRS-like: ZONE GRID_SQUARE EASTING NORTHING
-        String fullMGRS = String.format("%02d%c%c %04d %04d", 
-                           zone, gridSquare1, gridSquare2, 
-                           easting % 10000, northing % 10000);
-        
-        // Remove first 4 characters as requested
-        if (fullMGRS.length() > 4) {
-            return fullMGRS.substring(4);
-        }
-        return fullMGRS;
+        double[] utm = convertWGS84ToUTM(latitude, longitude, zone);
+        double easting = utm[0];
+        double northing = utm[1];
+
+        // Get first 4 digits for PDF format
+        int eastingFirst4 = ((int) Math.abs(easting)) / 100;  // Remove last 2 digits, keep first 4
+        int northingFirst4 = ((int) Math.abs(northing)) / 1000; // Remove last 3 digits, keep first 4
+
+        return String.format("%04d %04d", eastingFirst4, northingFirst4);
     }
     
-    public static String toFullMGRS(double latitude, double longitude) {
-        // Same as toMGRS but returns the full coordinates without removing first 4 characters
-        
-        // Convert to pseudo-UTM coordinates (simplified)
+    public static String toFullUTM(double latitude, double longitude) {
+        // Determine the correct UTM zone based on longitude
         int zone = (int) Math.floor((longitude + 180) / 6) + 1;
         
-        // Generate grid square letters (simplified approach)
-        char gridSquare1 = (char) ('A' + ((int) Math.abs(latitude * 10) % 26));
-        char gridSquare2 = (char) ('A' + ((int) Math.abs(longitude * 10) % 26));
+        // Debug: Let's try both zones to see which is more accurate
+        double[] utm34 = convertWGS84ToUTM(latitude, longitude, 34);
+        double[] utm35 = convertWGS84ToUTM(latitude, longitude, 35);
         
-        // Calculate easting and northing (simplified)
-        int easting = (int) Math.abs((longitude - Math.floor(longitude)) * 100000);
-        int northing = (int) Math.abs((latitude - Math.floor(latitude)) * 100000);
+        // Use the calculated zone
+        double[] utmCorrect = convertWGS84ToUTM(latitude, longitude, zone);
         
-        // Format as MGRS-like: ZONE GRID_SQUARE EASTING NORTHING
-        return String.format("%02d%c%c %04d %04d", 
-                           zone, gridSquare1, gridSquare2, 
-                           easting % 10000, northing % 10000);
+        // Debug output
+        System.out.println("DEBUG: Lat=" + String.format("%.6f", latitude) + "°, Lon=" + String.format("%.6f", longitude) + "°");
+        System.out.println("DEBUG: Calculated zone=" + zone);
+        System.out.println("DEBUG: Zone 34 -> E=" + (int)utm34[0] + ", N=" + (int)utm34[1]);
+        System.out.println("DEBUG: Zone 35 -> E=" + (int)utm35[0] + ", N=" + (int)utm35[1]);
+        System.out.println("DEBUG: Zone " + zone + " -> E=" + (int)utmCorrect[0] + ", N=" + (int)utmCorrect[1]);
+        
+        // For Lithuania (longitude ~24.37), the correct zone should be 35
+        // But let's use the calculated zone
+        double easting = utmCorrect[0];
+        double northing = utmCorrect[1];
+        
+        return String.format("%dU %06.0f %07.0f", zone, Math.abs(easting), Math.abs(northing));
     }
     
     /**
@@ -150,5 +144,57 @@ public class CoordinateUtils {
      */
     public static String formatCoordinates(double latitude, double longitude) {
         return String.format("%.6f°, %.6f°", latitude, longitude);
+    }
+    
+    /**
+     * Simplified but more accurate WGS84 to UTM conversion 
+     * Based on standard UTM projection formulas
+     * @param latitude WGS84 latitude in decimal degrees
+     * @param longitude WGS84 longitude in decimal degrees  
+     * @param zone UTM zone number
+     * @return array with [easting, northing] in meters
+     */
+    private static double[] convertWGS84ToUTM(double latitude, double longitude, int zone) {
+        // WGS84 ellipsoid parameters
+        double a = 6378137.0;              // Semi-major axis (meters)
+        double e = 0.0818191908;           // First eccentricity
+        double e1sq = 0.006739497;         // e1 squared
+        
+        // UTM parameters
+        double k0 = 0.9996;                // Scale factor
+        double E0 = 500000.0;              // False easting
+        double N0 = 0.0;                   // False northing (Northern hemisphere)
+        
+        // Convert to radians
+        double lat = Math.toRadians(latitude);
+        double lon = Math.toRadians(longitude);
+        double lon0 = Math.toRadians((zone - 1) * 6 - 180 + 3); // Central meridian
+        System.out.println("DEBUG: Zone " + zone + " central meridian = " + Math.toDegrees(lon0) + "°");
+        
+        double dLon = lon - lon0;
+        
+        // Calculate M (meridional arc)
+        double M = a * ((1 - Math.pow(e, 2) / 4 - 3 * Math.pow(e, 4) / 64 - 5 * Math.pow(e, 6) / 256) * lat
+                - (3 * Math.pow(e, 2) / 8 + 3 * Math.pow(e, 4) / 32 + 45 * Math.pow(e, 6) / 1024) * Math.sin(2 * lat)
+                + (15 * Math.pow(e, 4) / 256 + 45 * Math.pow(e, 6) / 1024) * Math.sin(4 * lat)
+                - (35 * Math.pow(e, 6) / 3072) * Math.sin(6 * lat));
+        
+        // Calculate other parameters
+        double nu = a / Math.sqrt(1 - Math.pow(e * Math.sin(lat), 2));
+        double rho = nu * (1 - Math.pow(e, 2)) / (1 - Math.pow(e * Math.sin(lat), 2));
+        double T = Math.pow(Math.tan(lat), 2);
+        double C = e1sq * Math.pow(Math.cos(lat), 2);
+        double A_coeff = dLon * Math.cos(lat);
+        
+        // Calculate easting
+        double easting = k0 * nu * (A_coeff + (1 - T + C) * Math.pow(A_coeff, 3) / 6
+                + (5 - 18 * T + Math.pow(T, 2) + 72 * C - 58 * e1sq) * Math.pow(A_coeff, 5) / 120) + E0;
+        
+        // Calculate northing
+        double northing = k0 * (M + nu * Math.tan(lat) * (Math.pow(A_coeff, 2) / 2
+                + (5 - T + 9 * C + 4 * Math.pow(C, 2)) * Math.pow(A_coeff, 4) / 24
+                + (61 - 58 * T + Math.pow(T, 2) + 600 * C - 330 * e1sq) * Math.pow(A_coeff, 6) / 720)) + N0;
+        
+        return new double[]{easting, northing};
     }
 }
