@@ -32,10 +32,10 @@ if not exist "%JRE_PATH%\bin\javac.exe" (
 echo Compiling Java files...
 if exist "RouteMaker\javafx\lib" (
     echo Using JavaFX for compilation...
-    "%JRE_PATH%\bin\javac.exe" --module-path RouteMaker\javafx\lib --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing *.java
+    "%JRE_PATH%\bin\javac.exe" --module-path RouteMaker\javafx\lib --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing -cp "pdfbox.jar" *.java
 ) else (
     echo Compiling without JavaFX...
-    "%JRE_PATH%\bin\javac.exe" *.java
+    "%JRE_PATH%\bin\javac.exe" -cp "pdfbox.jar" *.java
 )
 if errorlevel 1 (
     echo ERROR: Compilation failed!
@@ -55,6 +55,7 @@ if errorlevel 1 (
 :: Copy JAR to RouteMaker directory
 echo Deploying to RouteMaker directory...
 copy "RouteMaker.jar" "RouteMaker\"
+copy "pdfbox.jar" "RouteMaker\"
 if errorlevel 1 (
     echo ERROR: Failed to copy JAR to RouteMaker directory!
     pause

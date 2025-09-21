@@ -84,7 +84,7 @@ public class WayPoint {
             case "S":
                 return "Startas";
             case "F":
-                return "Finisas";
+                return "Finišas";
             default:
                 return number;
         }

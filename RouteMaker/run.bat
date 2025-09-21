@@ -101,10 +101,10 @@ echo Starting RouteMaker...
 echo.
 if exist "javafx\lib" (
     echo Using JavaFX for Google Maps integration...
-    "%JRE_DIR%\bin\java.exe" --module-path javafx\lib --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing -jar RouteMaker.jar
+    "%JRE_DIR%\bin\java.exe" --module-path javafx\lib --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing -cp "RouteMaker.jar;pdfbox.jar" RouteMaker
 ) else (
     echo Warning: JavaFX not found. Google Maps will not work.
-    "%JRE_DIR%\bin\java.exe" -jar RouteMaker.jar
+    "%JRE_DIR%\bin\java.exe" -cp "RouteMaker.jar;pdfbox.jar" RouteMaker
 )
 
 echo.
