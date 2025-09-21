@@ -6,7 +6,7 @@ import java.awt.event.ActionListener;
 public class RouteMaker extends JFrame {
     private GoogleMapsPanel googleMapsPanel;
     private ActionManager actionManager;
-    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, pdfButton, toggleViewButton, exitButton;
+    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, showCoordsButton, pdfButton, toggleViewButton, exitButton;
     
     public RouteMaker() {
         setTitle("RouteMaker - Google Maps Route Planning");
@@ -54,6 +54,7 @@ public class RouteMaker extends JFrame {
         resetButton = new JButton("Reset");
         invertButton = new JButton("Invert Route");
         undoButton = new JButton("Undo");
+        showCoordsButton = new JButton("Show Coords");
         pdfButton = new JButton("Generate PDF");
         toggleViewButton = new JButton("Toggle View");
         exitButton = new JButton("Exit");
@@ -65,6 +66,7 @@ public class RouteMaker extends JFrame {
         resetButton.setPreferredSize(buttonSize);
         invertButton.setPreferredSize(buttonSize);
         undoButton.setPreferredSize(buttonSize);
+        showCoordsButton.setPreferredSize(buttonSize);
         pdfButton.setPreferredSize(buttonSize);
         toggleViewButton.setPreferredSize(buttonSize);
         exitButton.setPreferredSize(buttonSize);
@@ -98,6 +100,8 @@ public class RouteMaker extends JFrame {
         controlPanel.add(invertButton);
         controlPanel.add(Box.createVerticalStrut(5));
         controlPanel.add(undoButton);
+        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(showCoordsButton);
         controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(pdfButton);
         controlPanel.add(Box.createVerticalStrut(15));
@@ -120,6 +124,7 @@ public class RouteMaker extends JFrame {
             // TODO: Implement undo functionality for Google Maps
             System.out.println("Undo functionality to be implemented");
         });
+        showCoordsButton.addActionListener(e -> showCoordinates());
         pdfButton.addActionListener(e -> generatePDF());
         toggleViewButton.addActionListener(e -> googleMapsPanel.toggleMapType());
         exitButton.addActionListener(e -> exitApplication());
@@ -161,6 +166,23 @@ public class RouteMaker extends JFrame {
                 e.printStackTrace();
             }
         }).start();
+    }
+    
+    private void showCoordinates() {
+        // Get waypoints from Google Maps and display their MGRS coordinates
+        googleMapsPanel.getWaypointsAsync((waypoints) -> {
+            if (waypoints.isEmpty()) {
+                System.out.println("No waypoints found. Please add some points to the map first.");
+                return;
+            }
+            
+            System.out.println("\n=== Current Waypoints ===");
+            for (WayPoint wp : waypoints) {
+                String fullMgrsCoords = CoordinateUtils.toFullMGRS(wp.getLatitude(), wp.getLongitude());
+                System.out.println("Waypoint " + wp.getNumber() + ": " + fullMgrsCoords + " (Letter: " + wp.getLetter() + ")");
+            }
+            System.out.println("========================\n");
+        });
     }
     
     private void exitApplication() {

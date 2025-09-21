@@ -290,6 +290,10 @@ public class GoogleMapsPanel extends JPanel {
                                     WayPoint wp = new WayPoint(number, lat, lng);
                                     wp.setLetter(letter);
                                     waypoints.add(wp);
+                                    
+                                    // Print full MGRS coordinates to console
+                                    String fullMgrsCoords = CoordinateUtils.toFullMGRS(lat, lng);
+                                    System.out.println("Waypoint " + number + ": " + fullMgrsCoords);
                                 } catch (NumberFormatException e) {
                                     System.err.println("Error parsing waypoint: " + e.getMessage());
                                 }

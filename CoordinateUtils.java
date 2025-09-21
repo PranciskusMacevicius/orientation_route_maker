@@ -36,6 +36,26 @@ public class CoordinateUtils {
         return fullMGRS;
     }
     
+    public static String toFullMGRS(double latitude, double longitude) {
+        // Same as toMGRS but returns the full coordinates without removing first 4 characters
+        
+        // Convert to pseudo-UTM coordinates (simplified)
+        int zone = (int) Math.floor((longitude + 180) / 6) + 1;
+        
+        // Generate grid square letters (simplified approach)
+        char gridSquare1 = (char) ('A' + ((int) Math.abs(latitude * 10) % 26));
+        char gridSquare2 = (char) ('A' + ((int) Math.abs(longitude * 10) % 26));
+        
+        // Calculate easting and northing (simplified)
+        int easting = (int) Math.abs((longitude - Math.floor(longitude)) * 100000);
+        int northing = (int) Math.abs((latitude - Math.floor(latitude)) * 100000);
+        
+        // Format as MGRS-like: ZONE GRID_SQUARE EASTING NORTHING
+        return String.format("%02d%c%c %04d %04d", 
+                           zone, gridSquare1, gridSquare2, 
+                           easting % 10000, northing % 10000);
+    }
+    
     /**
      * Converts screen coordinates to geographical coordinates based on map bounds
      */
