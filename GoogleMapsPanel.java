@@ -173,6 +173,18 @@ public class GoogleMapsPanel extends JPanel {
                "" +
                "window.invertRoute = function() {" +
                "  waypoints.reverse();" +
+               "  for (var i = 0; i < waypoints.length; i++) {" +
+               "    if (i === 0) {" +
+               "      waypoints[i].number = 'S';" +
+               "      waypoints[i].marker.setLabel('S');" +
+               "    } else if (i === waypoints.length - 1) {" +
+               "      waypoints[i].number = 'F';" +
+               "      waypoints[i].marker.setLabel('F');" +
+               "    } else {" +
+               "      waypoints[i].number = i.toString();" +
+               "      waypoints[i].marker.setLabel(i.toString());" +
+               "    }" +
+               "  }" +
                "  updateConnections();" +
                "};" +
                "" +
