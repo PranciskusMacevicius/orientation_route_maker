@@ -46,7 +46,7 @@ public class PDFGenerator {
         SwingUtilities.invokeLater(() -> {
             JOptionPane.showMessageDialog(null, 
                 "PDF saved successfully to:\n" + outputFile.getAbsolutePath(), 
-                "PDF Saved", 
+                "PDF Saved",
                 JOptionPane.INFORMATION_MESSAGE);
         });
     }
@@ -101,8 +101,8 @@ public class PDFGenerator {
                     int actualWaypoints = endIndex - startIndex;
                     
                     // Grid dimensions - full page, no margins
-                    int cols = 2;
-                    int rows = 4;
+        int cols = 2;
+        int rows = 4;
                     float pageWidth = PDRectangle.A4.getWidth();
                     float pageHeight = PDRectangle.A4.getHeight();
                     float cellWidth = pageWidth / cols;
@@ -111,9 +111,9 @@ public class PDFGenerator {
                     // Draw thick borders for point separation
                     contentStream.setLineWidth(2f);
                     for (int i = 0; i < actualWaypoints; i++) {
-                        int row = i / cols;
-                        int col = i % cols;
-                        
+            int row = i / cols;
+            int col = i % cols;
+            
                         float cellX = col * cellWidth;
                         float cellY = pageHeight - (row + 1) * cellHeight;
                         
@@ -125,6 +125,9 @@ public class PDFGenerator {
                     // Draw thin internal lines for property separation
                     contentStream.setLineWidth(0.5f);
                     for (int i = 0; i < actualWaypoints; i++) {
+                        WayPoint wp = wayPoints.get(startIndex + i);
+                        boolean isFinish = wp.getNumber().equals("F");
+                        
                         int row = i / cols;
                         int col = i % cols;
                         
@@ -132,12 +135,38 @@ public class PDFGenerator {
                         float cellY = pageHeight - (row + 1) * cellHeight;
                         float tableRowHeight = cellHeight / 4;
                         
-                        // Draw 3 horizontal lines to create 4 rows
-                        for (int tableRow = 1; tableRow < 4; tableRow++) {
-                            float y = cellY + tableRow * tableRowHeight;
-                            contentStream.moveTo(cellX, y);
-                            contentStream.lineTo(cellX + cellWidth, y);
+                        if (isFinish) {
+                            // For finish point: 2 thin lines, then 1 thick line RIGHT after "Raidė"  
+                            // Text positioning: (3-textRow) * tableRowHeight + tableRowHeight/2
+                            // We need lines at the row boundaries, not through the text
+                            
+                            // Thin line after "Taškas" row (at 3 * tableRowHeight)
+                            float y1 = cellY + 3 * tableRowHeight;
+                            contentStream.moveTo(cellX, y1);
+                            contentStream.lineTo(cellX + cellWidth, y1);
                             contentStream.stroke();
+                            
+                            // Thin line after "Koordinatės" row (at 2 * tableRowHeight)
+                            float y2 = cellY + 2 * tableRowHeight;
+                            contentStream.moveTo(cellX, y2);
+                            contentStream.lineTo(cellX + cellWidth, y2);
+                            contentStream.stroke();
+                            
+                            // THICK line RIGHT after "Raidė" row (at 1 * tableRowHeight)
+                            contentStream.setLineWidth(2f);
+                            float thickY = cellY + 1 * tableRowHeight;
+                            contentStream.moveTo(cellX, thickY);
+                            contentStream.lineTo(cellX + cellWidth, thickY);
+                            contentStream.stroke();
+                            contentStream.setLineWidth(0.5f); // Reset to thin
+                        } else {
+                            // For other points, draw 3 lines to create 4 rows
+                            for (int tableRow = 1; tableRow < 4; tableRow++) {
+                                float y = cellY + tableRow * tableRowHeight;
+                                contentStream.moveTo(cellX, y);
+                                contentStream.lineTo(cellX + cellWidth, y);
+                                contentStream.stroke();
+                            }
                         }
                     }
                     
@@ -146,30 +175,37 @@ public class PDFGenerator {
                     
                     for (int i = 0; i < actualWaypoints; i++) {
                         WayPoint wp = wayPoints.get(startIndex + i);
-                        
-                        int row = i / cols;
-                        int col = i % cols;
-                        
+                
+                int row = i / cols;
+                int col = i % cols;
+                
                         float cellX = col * cellWidth;
                         float cellY = pageHeight - (row + 1) * cellHeight;
                         float tableRowHeight = cellHeight / 4;
                         
-                        // Array of texts for each row - using proper Lithuanian characters
-                        String[] texts = {
-                            "Taškas: " + wp.getDisplayNumber(),
-                            "Koordinatės: " + wp.getCurrentCoordinates(),
-                            "Raidė: " + wp.getLetter(),
-                            "Sekančio taško koordinatės: " + wp.getNextPointCoordinates()
-                        };
+                        // Array of texts for each row - check if it's finish point
+                        String[] texts;
+                        boolean isFinish = wp.getNumber().equals("F");
                         
-                        // Debug: print the text to see what we're actually getting
-                        System.out.println("Debug - Display number: '" + wp.getDisplayNumber() + "'");
-                        for (int debugIdx = 0; debugIdx < texts.length; debugIdx++) {
-                            System.out.println("Debug - Text[" + debugIdx + "]: '" + texts[debugIdx] + "'");
+                        if (isFinish) {
+                            // For finish point, only show 3 rows (no next coordinates)
+                            texts = new String[]{
+                                "Taškas: " + wp.getDisplayNumber(),
+                                "Koordinatės: " + wp.getCurrentCoordinates(),
+                                "Raidė: " + wp.getLetter()
+                            };
+                        } else {
+                            // For other points, show all 4 rows
+                            texts = new String[]{
+                                "Taškas: " + wp.getDisplayNumber(),
+                                "Koordinatės: " + wp.getCurrentCoordinates(),
+                                "Raidė: " + wp.getLetter(),
+                                "Sekančio taško koordinatės: " + wp.getNextPointCoordinates()
+                            };
                         }
                         
                         // Draw each text row centered within its table row
-                        for (int textRow = 0; textRow < 4; textRow++) {
+                        for (int textRow = 0; textRow < texts.length; textRow++) {
                             String text = texts[textRow];
                             
                             // Calculate text positioning (centered)
