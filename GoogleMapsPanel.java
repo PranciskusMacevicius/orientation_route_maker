@@ -101,8 +101,8 @@ public class GoogleMapsPanel extends JPanel {
                "function initMap() {" +
                "  try {" +
                "    map = new google.maps.Map(document.getElementById('map'), {" +
-               "      center: { lat: 54.6872, lng: 25.2797 }," +
-               "      zoom: 15," +
+               "      center: { lat: 55.030180, lng: 24.370464 }," +
+               "      zoom: 13," +
                "      mapTypeId: google.maps.MapTypeId.SATELLITE" +
                "    });" +
                "" +

@@ -1,8 +1,8 @@
 public class CoordinateUtils {
     
-    // Default coordinates for Lithuania (approximately Vilnius area)
-    public static final double DEFAULT_LATITUDE = 54.6872;
-    public static final double DEFAULT_LONGITUDE = 25.2797;
+    // Default coordinates for Rukla, Lithuania
+    public static final double DEFAULT_LATITUDE = 55.030180;
+    public static final double DEFAULT_LONGITUDE = 24.370464;
     
     /**
      * Converts latitude and longitude to MGRS format (simplified approximation)
@@ -25,9 +25,15 @@ public class CoordinateUtils {
         int northing = (int) Math.abs((latitude - Math.floor(latitude)) * 100000);
         
         // Format as MGRS-like: ZONE GRID_SQUARE EASTING NORTHING
-        return String.format("%02d%c%c %04d %04d", 
+        String fullMGRS = String.format("%02d%c%c %04d %04d", 
                            zone, gridSquare1, gridSquare2, 
                            easting % 10000, northing % 10000);
+        
+        // Remove first 4 characters as requested
+        if (fullMGRS.length() > 4) {
+            return fullMGRS.substring(4);
+        }
+        return fullMGRS;
     }
     
     /**
