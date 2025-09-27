@@ -17,15 +17,15 @@ public class CoordinateUtils {
         double easting = utm[0];
         double northing = utm[1];
 
-        // Get last 4 digits for easting, rearrange last 4 digits for northing
-        int eastingLast4 = ((int) Math.abs(easting)) % 10000;  // Get last 4 digits (e.g., 331609 → 1609)
-        int northingLast4 = ((int) Math.abs(northing)) % 10000; // Get last 4 digits (e.g., 6098971 → 8971)
+        // Get digits 2-5 from the right for easting (e.g., 330591 → 3059)
+        int eastingDigits = ((int) Math.abs(easting)) % 100000; // Get last 5 digits
+        int eastingLast4 = (eastingDigits / 10) % 10000; // Get digits 2-5 from right
         
-        // Rearrange northing digits: 9239 → 9923 (pattern: digit[0], digit[3], digit[1], digit[2])
-        String northingStr = String.format("%04d", northingLast4);
-        int northingRearranged = Integer.parseInt("" + northingStr.charAt(0) + northingStr.charAt(3) + northingStr.charAt(1) + northingStr.charAt(2));
+        // Get digits 2-5 from the right for northing
+        int northingDigits = ((int) Math.abs(northing)) % 100000; // Get last 5 digits (e.g., 6099205 → 99205)
+        int northingLast4 = (northingDigits / 10) % 10000; // Get digits 2-5 from right (e.g., 99205 → 9920)
 
-        return String.format("%04d %04d", eastingLast4, northingRearranged);
+        return String.format("%04d %04d", eastingLast4, northingLast4);
     }
     
     public static String toFullUTM(double latitude, double longitude) {

@@ -348,7 +348,7 @@ public class GoogleMapsPanel extends JPanel {
     
     public void addWaypoint(double lat, double lng) {
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastWaypointTime < 2000) {
+        if (currentTime - lastWaypointTime < 200) {
             System.out.println("Waypoint creation debounced - too soon");
             return;
         }
