@@ -54,37 +54,37 @@ public class PDFGenerator {
     private static void generatePDFWithPDFBox(List<WayPoint> wayPoints, File outputFile) throws Exception {
         try (PDDocument document = new PDDocument()) {
             
-            // Load a Unicode-compatible font
+            // Load Times New Roman font
             PDFont font;
             try {
-                // Try to load a system font that supports Unicode
-                File fontFile = new File("C:/Windows/Fonts/arial.ttf");
+                // Try to load Times New Roman font
+                File fontFile = new File("C:/Windows/Fonts/times.ttf");
                 if (fontFile.exists()) {
-                    System.out.println("Loading Arial font from: " + fontFile.getAbsolutePath());
+                    System.out.println("Loading Times New Roman font from: " + fontFile.getAbsolutePath());
                     font = PDType0Font.load(document, new FileInputStream(fontFile));
-                    System.out.println("Arial font loaded successfully!");
+                    System.out.println("Times New Roman font loaded successfully!");
                 } else {
-                    // Try Calibri
-                    fontFile = new File("C:/Windows/Fonts/calibri.ttf");
+                    // Try Times New Roman with different filename
+                    fontFile = new File("C:/Windows/Fonts/timesnr.ttf");
                     if (fontFile.exists()) {
-                        System.out.println("Loading Calibri font from: " + fontFile.getAbsolutePath());
+                        System.out.println("Loading Times New Roman font from: " + fontFile.getAbsolutePath());
                         font = PDType0Font.load(document, new FileInputStream(fontFile));
-                        System.out.println("Calibri font loaded successfully!");
+                        System.out.println("Times New Roman font loaded successfully!");
                     } else {
-                        // Try DejaVu Sans
-                        fontFile = new File("C:/Windows/Fonts/DejaVuSans.ttf");
+                        // Try Times New Roman with another filename
+                        fontFile = new File("C:/Windows/Fonts/timesnewroman.ttf");
                         if (fontFile.exists()) {
-                            System.out.println("Loading DejaVu Sans font from: " + fontFile.getAbsolutePath());
+                            System.out.println("Loading Times New Roman font from: " + fontFile.getAbsolutePath());
                             font = PDType0Font.load(document, new FileInputStream(fontFile));
-                            System.out.println("DejaVu Sans font loaded successfully!");
+                            System.out.println("Times New Roman font loaded successfully!");
                         } else {
-                            throw new Exception("No Unicode font found. Checked arial.ttf, calibri.ttf, and DejaVuSans.ttf in C:/Windows/Fonts/");
+                            throw new Exception("Times New Roman font not found. Checked times.ttf, timesnr.ttf, and timesnewroman.ttf in C:/Windows/Fonts/");
                         }
                     }
                 }
             } catch (Exception e) {
                 System.err.println("Font loading error: " + e.getMessage());
-                throw new Exception("Could not load Unicode font: " + e.getMessage());
+                throw new Exception("Could not load Times New Roman font: " + e.getMessage());
             }
             
             int totalPages = (int) Math.ceil((double) wayPoints.size() / POINTS_PER_PAGE);
@@ -179,7 +179,7 @@ public class PDFGenerator {
                     }
                     
                     // Add text content with proper Lithuanian characters
-                    contentStream.setFont(font, 10);
+                    contentStream.setFont(font, 14);
                     
                     for (int i = 0; i < actualWaypoints; i++) {
                         WayPoint wp = wayPoints.get(startIndex + i);
@@ -217,7 +217,7 @@ public class PDFGenerator {
                             String text = texts[textRow];
                             
                             // Calculate text positioning (centered)
-                            float textWidth = font.getStringWidth(text) / 1000f * 10;
+                            float textWidth = font.getStringWidth(text) / 1000f * 14;
                             float textX = cellX + (cellWidth - textWidth) / 2;
                             float textY = cellY + (3 - textRow) * tableRowHeight + tableRowHeight / 2 - 3;
                             
