@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "RouteMaker",
+            "request": "launch",
+            "mainClass": "RouteMaker",
+            "projectName": "route_maker_b698b223"
+        },
+        {
+            "type": "java",
+            "name": "Run RouteMaker",
+            "request": "launch",
+            "mainClass": "RouteMaker",
+            "projectName": "route_maker",
+            "vmArgs": "--module-path C:\\Java\\javafx-sdk-18\\lib --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing",
+            "args": "",
+            "console": "integratedTerminal",
+            "classpath": [
+                "${workspaceFolder}\\bin",
+                "${workspaceFolder}\\pdfbox.jar"
+            ]
+        }
+    ]
+}
+
