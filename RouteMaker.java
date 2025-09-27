@@ -6,7 +6,7 @@ import java.awt.event.ActionListener;
 public class RouteMaker extends JFrame {
     private GoogleMapsPanel googleMapsPanel;
     private ActionManager actionManager;
-    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, redoButton, showCoordsButton, pdfButton, toggleViewButton, exitButton;
+    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, redoButton, pdfButton;
     
     public RouteMaker() {
         setTitle("RouteMaker - Google Maps Route Planning");
@@ -60,30 +60,39 @@ public class RouteMaker extends JFrame {
         zoomOutButton = new JButton("Zoom Out");
         resetButton = new JButton("Reset");
         invertButton = new JButton("Invert Route");
-        undoButton = new JButton("<html>Remove Last<br>Added Point</html>");
-        redoButton = new JButton("<html>Add Last<br>Removed Point</html>");
-        showCoordsButton = new JButton("Show Coords");
+        undoButton = new JButton("<html><center>Remove Last<br>Added Point</center></html>");
+        redoButton = new JButton("<html><center>Add Last<br>Removed Point</center></html>");
         pdfButton = new JButton("Generate PDF");
-        toggleViewButton = new JButton("Toggle View");
-        exitButton = new JButton("Exit");
         
-        // Set button sizes
-        Dimension buttonSize = new Dimension(120, 30);
-        zoomInButton.setPreferredSize(buttonSize);
-        zoomOutButton.setPreferredSize(buttonSize);
-        resetButton.setPreferredSize(buttonSize);
-        invertButton.setPreferredSize(buttonSize);
-        undoButton.setPreferredSize(buttonSize);
-        redoButton.setPreferredSize(buttonSize);
-        showCoordsButton.setPreferredSize(buttonSize);
-        pdfButton.setPreferredSize(buttonSize);
-        toggleViewButton.setPreferredSize(buttonSize);
-        exitButton.setPreferredSize(buttonSize);
+        // Set button sizes - all buttons same width, different heights for text
+        Dimension singleLineButtonSize = new Dimension(200, 30);
+        Dimension twoLineButtonSize = new Dimension(200, 50);
+        zoomInButton.setPreferredSize(singleLineButtonSize);
+        zoomOutButton.setPreferredSize(singleLineButtonSize);
+        resetButton.setPreferredSize(singleLineButtonSize);
+        invertButton.setPreferredSize(singleLineButtonSize);
+        undoButton.setPreferredSize(twoLineButtonSize);
+        redoButton.setPreferredSize(twoLineButtonSize);
+        pdfButton.setPreferredSize(singleLineButtonSize);
         
+        // Make buttons expand to fill available width
+        zoomInButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        zoomOutButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        resetButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        invertButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        undoButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        redoButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        pdfButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         
-        exitButton.setBackground(new Color(220, 80, 80));
-        exitButton.setForeground(Color.WHITE);
-        exitButton.setFocusPainted(false);
+        // Center text for all buttons
+        zoomInButton.setHorizontalAlignment(SwingConstants.CENTER);
+        zoomOutButton.setHorizontalAlignment(SwingConstants.CENTER);
+        resetButton.setHorizontalAlignment(SwingConstants.CENTER);
+        invertButton.setHorizontalAlignment(SwingConstants.CENTER);
+        undoButton.setHorizontalAlignment(SwingConstants.CENTER);
+        redoButton.setHorizontalAlignment(SwingConstants.CENTER);
+        pdfButton.setHorizontalAlignment(SwingConstants.CENTER);
+        
         
         // Initially disable all buttons until map is ready
         enableButtons(false);
@@ -96,9 +105,7 @@ public class RouteMaker extends JFrame {
         invertButton.setEnabled(enabled);
         undoButton.setEnabled(enabled);
         redoButton.setEnabled(enabled);
-        showCoordsButton.setEnabled(enabled);
         pdfButton.setEnabled(enabled);
-        toggleViewButton.setEnabled(enabled);
         // Keep exit button always enabled
     }
     
@@ -115,24 +122,18 @@ public class RouteMaker extends JFrame {
         controlPanel.setOpaque(false);
         
         controlPanel.add(zoomInButton);
-        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(zoomOutButton);
         controlPanel.add(Box.createVerticalStrut(10));
-        controlPanel.add(toggleViewButton);
-        controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(resetButton);
-        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(invertButton);
-        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(undoButton);
-        controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(redoButton);
-        controlPanel.add(Box.createVerticalStrut(5));
-        controlPanel.add(showCoordsButton);
         controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(pdfButton);
-        controlPanel.add(Box.createVerticalStrut(15));
-        controlPanel.add(exitButton);
         
         // Position control panel in lower right
         JPanel rightPanel = new JPanel(new BorderLayout());
@@ -149,10 +150,7 @@ public class RouteMaker extends JFrame {
         invertButton.addActionListener(e -> googleMapsPanel.invertRoute());
         undoButton.addActionListener(e -> googleMapsPanel.undo());
         redoButton.addActionListener(e -> googleMapsPanel.redo());
-        showCoordsButton.addActionListener(e -> showCoordinates());
         pdfButton.addActionListener(e -> generatePDF());
-        toggleViewButton.addActionListener(e -> googleMapsPanel.toggleMapType());
-        exitButton.addActionListener(e -> exitApplication());
     }
     
     private void generatePDF() {
@@ -202,43 +200,6 @@ public class RouteMaker extends JFrame {
         }).start();
     }
     
-    private void showCoordinates() {
-        // Get waypoints from Google Maps and display their MGRS coordinates
-        googleMapsPanel.getWaypointsAsync((waypoints) -> {
-            if (waypoints.isEmpty()) {
-                System.out.println("No waypoints found. Please add some points to the map first.");
-                return;
-            }
-            
-               System.out.println("\n=== Current Waypoints ===");
-               for (WayPoint wp : waypoints) {
-                   String fullUtmCoords = CoordinateUtils.toFullUTM(wp.getLatitude(), wp.getLongitude());
-                   String geoCoords = String.format("%.6f°, %.6f°", wp.getLatitude(), wp.getLongitude());
-                   System.out.println("Waypoint " + wp.getNumber() + ": " + geoCoords + " -> " + fullUtmCoords + " (Letter: " + wp.getLetter() + ")");
-               }
-               System.out.println("========================\n");
-        });
-    }
-    
-    private void exitApplication() {
-        int option = JOptionPane.showConfirmDialog(
-            this,
-            "Are you sure you want to exit RouteMaker?",
-            "Exit Confirmation",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
-        );
-        
-        if (option == JOptionPane.YES_OPTION) {
-            // Clean up resources
-            if (googleMapsPanel != null) {
-                googleMapsPanel.cleanup();
-            }
-            
-            // Exit the application
-            System.exit(0);
-        }
-    }
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new RouteMaker());
