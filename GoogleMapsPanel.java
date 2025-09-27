@@ -136,7 +136,14 @@ public class GoogleMapsPanel extends JPanel {
                "      addWaypoint(event.latLng);" +
                "    });" +
                "" +
+               "" +
                "    console.log('Google Maps initialized');" +
+               "    window.isMapReady = true;" +
+               "    if (window.javaApp) {" +
+               "      window.javaApp.onMapReady();" +
+               "    }" +
+               "" +
+               "" +
                "  } catch (error) {" +
                "    console.error('Error initializing Google Maps:', error);" +
                "  }" +
@@ -226,8 +233,10 @@ public class GoogleMapsPanel extends JPanel {
                "    google.maps.MapTypeId.SATELLITE : google.maps.MapTypeId.ROADMAP);" +
                "};" +
                "" +
+               "" +
                "window.zoomIn = function() { map.setZoom(map.getZoom() + 1); };" +
                "window.zoomOut = function() { map.setZoom(map.getZoom() - 1); };" +
+               "" +
                "" +
                "</script>" +
                "<script async defer src='https://maps.googleapis.com/maps/api/js?key=" + GOOGLE_MAPS_API_KEY + "&callback=initMap'></script>" +
@@ -364,6 +373,39 @@ public class GoogleMapsPanel extends JPanel {
     public void setMapReadyCallback(Runnable callback) {
         this.mapReadyCallback = callback;
     }
+
+    public String getUTMCoordinates(double lat, double lng) {
+        return CoordinateUtils.toUTM(lat, lng);
+    }
+
+    public void addCoordinateDisplay() {
+        if (isInitialized) {
+            Platform.runLater(() -> {
+                // Add coordinate display overlay
+                webEngine.executeScript(
+                    "var coordDiv = document.createElement('div');" +
+                    "coordDiv.id = 'coordinateDisplay';" +
+                    "coordDiv.style.cssText = 'position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.8);color:white;padding:8px 12px;border-radius:4px;font-family:monospace;font-size:14px;z-index:1000;pointer-events:none;';" +
+                    "coordDiv.textContent = '-- --';" +
+                    "document.body.appendChild(coordDiv);" +
+                    "map.addListener('mousemove', function(event) {" +
+                    "  var lat = event.latLng.lat();" +
+                    "  var lng = event.latLng.lng();" +
+                    "  if (window.javaApp && window.javaApp.getUTMCoordinates) {" +
+                    "    try {" +
+                    "      var coords = window.javaApp.getUTMCoordinates(lat, lng);" +
+                    "      document.getElementById('coordinateDisplay').textContent = coords;" +
+                    "    } catch (e) {" +
+                    "      document.getElementById('coordinateDisplay').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);" +
+                    "    }" +
+                    "  } else {" +
+                    "    document.getElementById('coordinateDisplay').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);" +
+                    "  }" +
+                    "});"
+                );
+            });
+        }
+    }
     
     public void onMapReady() {
         isMapReady = true;
@@ -384,6 +426,9 @@ public class GoogleMapsPanel extends JPanel {
                     "  clickableIcons: true" +
                     "});"
                 );
+                
+                // Add coordinate display after map is ready
+                addCoordinateDisplay();
             });
         }
         
