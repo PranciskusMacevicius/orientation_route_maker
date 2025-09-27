@@ -6,7 +6,7 @@ import java.awt.event.ActionListener;
 public class RouteMaker extends JFrame {
     private GoogleMapsPanel googleMapsPanel;
     private ActionManager actionManager;
-    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, showCoordsButton, pdfButton, toggleViewButton, exitButton;
+    private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, redoButton, showCoordsButton, pdfButton, toggleViewButton, exitButton;
     
     public RouteMaker() {
         setTitle("RouteMaker - Google Maps Route Planning");
@@ -61,6 +61,7 @@ public class RouteMaker extends JFrame {
         resetButton = new JButton("Reset");
         invertButton = new JButton("Invert Route");
         undoButton = new JButton("Undo");
+        redoButton = new JButton("Redo");
         showCoordsButton = new JButton("Show Coords");
         pdfButton = new JButton("Generate PDF");
         toggleViewButton = new JButton("Toggle View");
@@ -73,6 +74,7 @@ public class RouteMaker extends JFrame {
         resetButton.setPreferredSize(buttonSize);
         invertButton.setPreferredSize(buttonSize);
         undoButton.setPreferredSize(buttonSize);
+        redoButton.setPreferredSize(buttonSize);
         showCoordsButton.setPreferredSize(buttonSize);
         pdfButton.setPreferredSize(buttonSize);
         toggleViewButton.setPreferredSize(buttonSize);
@@ -93,6 +95,7 @@ public class RouteMaker extends JFrame {
         resetButton.setEnabled(enabled);
         invertButton.setEnabled(enabled);
         undoButton.setEnabled(enabled);
+        redoButton.setEnabled(enabled);
         showCoordsButton.setEnabled(enabled);
         pdfButton.setEnabled(enabled);
         toggleViewButton.setEnabled(enabled);
@@ -123,6 +126,8 @@ public class RouteMaker extends JFrame {
         controlPanel.add(Box.createVerticalStrut(5));
         controlPanel.add(undoButton);
         controlPanel.add(Box.createVerticalStrut(5));
+        controlPanel.add(redoButton);
+        controlPanel.add(Box.createVerticalStrut(5));
         controlPanel.add(showCoordsButton);
         controlPanel.add(Box.createVerticalStrut(10));
         controlPanel.add(pdfButton);
@@ -142,10 +147,8 @@ public class RouteMaker extends JFrame {
         zoomOutButton.addActionListener(e -> googleMapsPanel.zoomOut());
         resetButton.addActionListener(e -> googleMapsPanel.clearWaypoints());
         invertButton.addActionListener(e -> googleMapsPanel.invertRoute());
-        undoButton.addActionListener(e -> {
-            // TODO: Implement undo functionality for Google Maps
-            System.out.println("Undo functionality to be implemented");
-        });
+        undoButton.addActionListener(e -> googleMapsPanel.undo());
+        redoButton.addActionListener(e -> googleMapsPanel.redo());
         showCoordsButton.addActionListener(e -> showCoordinates());
         pdfButton.addActionListener(e -> generatePDF());
         toggleViewButton.addActionListener(e -> googleMapsPanel.toggleMapType());

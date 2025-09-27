@@ -19,6 +19,10 @@ public class GoogleMapsPanel extends JPanel {
     private long lastWaypointTime = 0;
     private Runnable mapReadyCallback;
     
+    // History management for undo/redo - store removed waypoints
+    private java.util.List<WayPoint> removedWaypoints = new java.util.ArrayList<>();
+    private static final int MAX_HISTORY_SIZE = 20;
+    
     // You'll need to get your own Google Maps API key from Google Cloud Console 
     // Replace YOUR_API_KEY_HERE with your actual Google Maps API key
     private static final String GOOGLE_MAPS_API_KEY = "AIzaSyBxUx71FnVZj95ze2B7gs99NSzdIl-957k"; // Add your API key here
@@ -250,6 +254,8 @@ public class GoogleMapsPanel extends JPanel {
                 webEngine.executeScript("clearAllWaypoints();");
             });
         }
+        // Clear history when resetting
+        clearHistory();
     }
 
     public void invertRoute() {
@@ -376,6 +382,70 @@ public class GoogleMapsPanel extends JPanel {
 
     public String getUTMCoordinates(double lat, double lng) {
         return CoordinateUtils.toUTM(lat, lng);
+    }
+    
+    public void undo() {
+        System.out.println("Undo method called, isInitialized: " + isInitialized);
+        if (isInitialized) {
+            Platform.runLater(() -> {
+                webEngine.executeScript(
+                    "console.log('Undo called, waypoints length:', waypoints.length);" +
+                    "if (waypoints.length > 0) {" +
+                    "  var lastWaypoint = waypoints[waypoints.length - 1];" +
+                    "  console.log('Removing waypoint:', lastWaypoint.number);" +
+                    "  lastWaypoint.marker.setMap(null);" +
+                    "  waypoints.pop();" +
+                    "  updateConnections();" +
+                    "  console.log('Waypoint removed, new length:', waypoints.length);" +
+                    "  if (window.javaApp && window.javaApp.storeRemovedWaypoint) {" +
+                    "    window.javaApp.storeRemovedWaypoint(lastWaypoint.position.lat(), lastWaypoint.position.lng(), lastWaypoint.number, lastWaypoint.letter);" +
+                    "  } else {" +
+                    "    console.log('Java method not available');" +
+                    "  }" +
+                    "} else {" +
+                    "  console.log('No waypoints to remove');" +
+                    "}"
+                );
+            });
+        }
+    }
+    
+    public void redo() {
+        if (!removedWaypoints.isEmpty()) {
+            WayPoint waypoint = removedWaypoints.remove(removedWaypoints.size() - 1);
+            if (isInitialized) {
+                Platform.runLater(() -> {
+                    webEngine.executeScript(
+                        "addWaypointToMap(new google.maps.LatLng(" + waypoint.getLatitude() + ", " + waypoint.getLongitude() + "));" +
+                        "waypoints[waypoints.length - 1].number = '" + waypoint.getNumber() + "';" +
+                        "waypoints[waypoints.length - 1].letter = '" + waypoint.getLetter() + "';" +
+                        "waypoints[waypoints.length - 1].marker.setLabel('" + waypoint.getNumber() + "');"
+                    );
+                });
+            }
+            System.out.println("Redo: restored waypoint " + waypoint.getNumber());
+        } else {
+            System.out.println("Nothing to redo");
+        }
+    }
+    
+    public void storeRemovedWaypoint(double lat, double lng, String number, String letter) {
+        System.out.println("storeRemovedWaypoint called with: " + number + " at " + lat + ", " + lng);
+        WayPoint waypoint = new WayPoint(number, lat, lng);
+        waypoint.setLetter(letter);
+        removedWaypoints.add(waypoint);
+        
+        // Limit history size
+        if (removedWaypoints.size() > MAX_HISTORY_SIZE) {
+            removedWaypoints.remove(0);
+        }
+        
+        System.out.println("Stored removed waypoint: " + number + " at " + lat + ", " + lng + " (total stored: " + removedWaypoints.size() + ")");
+    }
+    
+    public void clearHistory() {
+        removedWaypoints.clear();
+        System.out.println("History cleared");
     }
 
     public void addCoordinateDisplay() {
