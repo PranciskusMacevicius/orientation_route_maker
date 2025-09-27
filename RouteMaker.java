@@ -9,9 +9,22 @@ public class RouteMaker extends JFrame {
     private JButton zoomInButton, zoomOutButton, resetButton, invertButton, undoButton, redoButton, pdfButton;
     
     public RouteMaker() {
-        setTitle("RouteMaker - Google Maps Route Planning");
+        setTitle("Orientation Route Maker");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
+        
+        // Set application icon
+        try {
+            // Load application icon (PNG format)
+            ImageIcon icon = new ImageIcon("icon.png"); // Place your icon.png in the project folder
+            setIconImage(icon.getImage());
+            
+            // Alternative: Load from resources
+            // ImageIcon icon = new ImageIcon(getClass().getResource("/icon.png"));
+            // setIconImage(icon.getImage());
+        } catch (Exception e) {
+            System.out.println("Could not load application icon: " + e.getMessage());
+        }
         
         // Add window closing handler
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -19,7 +32,7 @@ public class RouteMaker extends JFrame {
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
                 int option = JOptionPane.showConfirmDialog(
                     RouteMaker.this,
-                    "Are you sure you want to exit RouteMaker?",
+                    "Are you sure you want to exit Orientation Route Maker?",
                     "Exit Confirmation",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE
@@ -58,9 +71,9 @@ public class RouteMaker extends JFrame {
         // Create control buttons
         zoomInButton = new JButton("Zoom In");
         zoomOutButton = new JButton("Zoom Out");
-        resetButton = new JButton("Reset");
+        resetButton = new JButton("Remove Route");
         invertButton = new JButton("Invert Route");
-        undoButton = new JButton("<html><center>Remove Last<br>Added Point</center></html>");
+        undoButton = new JButton("<html><center>Remove Last<br> Point</center></html>");
         redoButton = new JButton("<html><center>Add Last<br>Removed Point</center></html>");
         pdfButton = new JButton("Generate PDF");
         
