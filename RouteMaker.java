@@ -48,6 +48,13 @@ public class RouteMaker extends JFrame {
         actionManager = new ActionManager();
         googleMapsPanel = new GoogleMapsPanel(actionManager);
         
+        // Set up map ready callback to enable buttons
+        googleMapsPanel.setMapReadyCallback(() -> {
+            SwingUtilities.invokeLater(() -> {
+                enableButtons(true);
+            });
+        });
+        
         // Create control buttons
         zoomInButton = new JButton("Zoom In");
         zoomOutButton = new JButton("Zoom Out");
@@ -75,6 +82,21 @@ public class RouteMaker extends JFrame {
         exitButton.setBackground(new Color(220, 80, 80));
         exitButton.setForeground(Color.WHITE);
         exitButton.setFocusPainted(false);
+        
+        // Initially disable all buttons until map is ready
+        enableButtons(false);
+    }
+    
+    private void enableButtons(boolean enabled) {
+        zoomInButton.setEnabled(enabled);
+        zoomOutButton.setEnabled(enabled);
+        resetButton.setEnabled(enabled);
+        invertButton.setEnabled(enabled);
+        undoButton.setEnabled(enabled);
+        showCoordsButton.setEnabled(enabled);
+        pdfButton.setEnabled(enabled);
+        toggleViewButton.setEnabled(enabled);
+        // Keep exit button always enabled
     }
     
     private void setupLayout() {

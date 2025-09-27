@@ -15,6 +15,9 @@ public class GoogleMapsPanel extends JPanel {
     private WebEngine webEngine;
     private ActionManager actionManager;
     private boolean isInitialized = false;
+    private boolean isMapReady = false;
+    private long lastWaypointTime = 0;
+    private Runnable mapReadyCallback;
     
     // You'll need to get your own Google Maps API key from Google Cloud Console 
     // Replace YOUR_API_KEY_HERE with your actual Google Maps API key
@@ -54,8 +57,22 @@ public class GoogleMapsPanel extends JPanel {
                     // Set up the bridge between Java and JavaScript
                     JSObject window = (JSObject) webEngine.executeScript("window");
                     window.setMember("javaApp", this);
+                    window.setMember("isMapReady", false);
                     isInitialized = true;
                     System.out.println("Google Maps loaded successfully!");
+                    
+                    // Wait 2 seconds then enable interactions
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(200);
+                            Platform.runLater(() -> {
+                                isMapReady = true;
+                                onMapReady();
+                            });
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }).start();
                 } catch (Exception e) {
                     System.err.println("Error setting up JavaScript bridge: " + e.getMessage());
                 }
@@ -103,10 +120,19 @@ public class GoogleMapsPanel extends JPanel {
                "    map = new google.maps.Map(document.getElementById('map'), {" +
                "      center: { lat: 55.030180, lng: 24.370464 }," +
                "      zoom: 13," +
-               "      mapTypeId: google.maps.MapTypeId.SATELLITE" +
+               "      mapTypeId: google.maps.MapTypeId.SATELLITE," +
+               "      draggable: false," +
+               "      zoomControl: false," +
+               "      scrollwheel: false," +
+               "      disableDoubleClickZoom: true," +
+               "      clickableIcons: false" +
                "    });" +
                "" +
                "    map.addListener('click', function(event) {" +
+               "      if (!window.isMapReady) {" +
+               "        console.log('Map not ready - click ignored');" +
+               "        return;" +
+               "      }" +
                "      addWaypoint(event.latLng);" +
                "    });" +
                "" +
@@ -117,6 +143,12 @@ public class GoogleMapsPanel extends JPanel {
                "}" +
                "" +
                "function addWaypoint(latLng) {" +
+               "  if (window.javaApp) {" +
+               "    window.javaApp.addWaypoint(latLng.lat(), latLng.lng());" +
+               "  }" +
+               "}" +
+               "" +
+               "function addWaypointToMap(latLng) {" +
                "  var pointNumber = waypoints.length === 0 ? 'S' : 'F';" +
                "  if (waypoints.length > 1) {" +
                "    waypoints[waypoints.length - 1].number = (waypoints.length - 1).toString();" +
@@ -311,6 +343,52 @@ public class GoogleMapsPanel extends JPanel {
             });
         } else {
             callback.accept(new java.util.ArrayList<>());
+        }
+    }
+    
+    public void addWaypoint(double lat, double lng) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastWaypointTime < 2000) {
+            System.out.println("Waypoint creation debounced - too soon");
+            return;
+        }
+        lastWaypointTime = currentTime;
+        
+        if (isInitialized) {
+            Platform.runLater(() -> {
+                webEngine.executeScript("addWaypointToMap(new google.maps.LatLng(" + lat + ", " + lng + "));");
+            });
+        }
+    }
+    
+    public void setMapReadyCallback(Runnable callback) {
+        this.mapReadyCallback = callback;
+    }
+    
+    public void onMapReady() {
+        isMapReady = true;
+        System.out.println("Map is ready for interaction!");
+        
+        // Enable map interactions
+        if (isInitialized) {
+            Platform.runLater(() -> {
+                // Update the JavaScript flag
+                webEngine.executeScript("window.isMapReady = true;");
+                
+                webEngine.executeScript(
+                    "map.setOptions({" +
+                    "  draggable: true," +
+                    "  zoomControl: true," +
+                    "  scrollwheel: true," +
+                    "  disableDoubleClickZoom: false," +
+                    "  clickableIcons: true" +
+                    "});"
+                );
+            });
+        }
+        
+        if (mapReadyCallback != null) {
+            mapReadyCallback.run();
         }
     }
     
