@@ -60,8 +60,8 @@ public class RouteMaker extends JFrame {
         zoomOutButton = new JButton("Zoom Out");
         resetButton = new JButton("Reset");
         invertButton = new JButton("Invert Route");
-        undoButton = new JButton("Undo");
-        redoButton = new JButton("Redo");
+        undoButton = new JButton("<html>Remove Last<br>Added Point</html>");
+        redoButton = new JButton("<html>Add Last<br>Removed Point</html>");
         showCoordsButton = new JButton("Show Coords");
         pdfButton = new JButton("Generate PDF");
         toggleViewButton = new JButton("Toggle View");
