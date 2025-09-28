@@ -109,4 +109,3 @@ if exist "javafx\lib" (
 
 echo.
 echo Application finished.
-pause
