@@ -43,9 +43,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Create JAR file with all compiled classes
-echo Creating RouteMaker.jar...
-"%JRE_PATH%\bin\jar.exe" -cfe RouteMaker.jar RouteMaker *.class
+:: Create JAR file with all compiled classes and JavaFX
+echo Creating RouteMaker.jar with JavaFX...
+if exist "RouteMaker\javafx\lib" (
+    echo Including JavaFX libraries...
+    "%JRE_PATH%\bin\jar.exe" -cfe RouteMaker.jar RouteMaker *.class -C "RouteMaker\javafx\lib" .
+) else (
+    echo Creating JAR without JavaFX...
+    "%JRE_PATH%\bin\jar.exe" -cfe RouteMaker.jar RouteMaker *.class
+)
 if errorlevel 1 (
     echo ERROR: JAR creation failed!
     pause

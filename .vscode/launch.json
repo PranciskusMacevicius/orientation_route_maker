@@ -18,7 +18,7 @@
             "args": "",
             "console": "integratedTerminal",
             "classpath": [
-                "${workspaceFolder}\\bin",
+                "${workspaceFolder}",
                 "${workspaceFolder}\\pdfbox.jar"
             ]
         }

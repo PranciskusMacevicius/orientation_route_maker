@@ -1,15 +1,15 @@
 @echo off
 echo Compiling RouteMaker with JavaFX...
 
-:: Clean the bin directory first
-if exist "bin\*.class" (
+:: Clean previous compilation
+if exist "*.class" (
     echo Cleaning previous compilation...
-    del /q bin\*.class
+    del /q *.class
 )
 
 :: Compile all Java files with JavaFX modules
 echo Compiling Java source files...
-"%JAVA_HOME%\bin\javac.exe" --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing -cp "pdfbox.jar" -d bin *.java
+"%JAVA_HOME%\bin\javac.exe" --module-path "%JAVAFX_HOME%\lib" --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing -cp "pdfbox.jar" *.java
 
 if errorlevel 1 (
     echo.
@@ -20,7 +20,7 @@ if errorlevel 1 (
 ) else (
     echo.
     echo ✅ Compilation successful!
-    echo Generated class files in bin\ directory.
+    echo Generated class files in current directory.
     echo.
     echo You can now:
     echo   - Use "Run Java" in Cursor (if it works)
