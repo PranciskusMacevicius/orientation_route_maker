@@ -93,7 +93,8 @@
         .coordinate-display {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 8px 12px;
@@ -162,8 +163,6 @@
         <div class="control-panel">
             <h2>Route Controls</h2>
             
-            <button class="btn" id="zoomInBtn" onclick="zoomIn()">Zoom In</button>
-            <button class="btn" id="zoomOutBtn" onclick="zoomOut()">Zoom Out</button>
             <button class="btn" id="resetBtn" onclick="clearWaypoints()">Remove Route</button>
             <button class="btn" id="invertBtn" onclick="invertRoute()">Invert Route</button>
             <button class="btn two-line" id="undoBtn" onclick="undo()">Remove Last<br>Point</button>
@@ -388,17 +387,6 @@
             console.log('Route inverted');
         }
 
-        function zoomIn() {
-            if (map) {
-                map.setZoom(map.getZoom() + 1);
-            }
-        }
-
-        function zoomOut() {
-            if (map) {
-                map.setZoom(map.getZoom() - 1);
-            }
-        }
 
         function undo() {
             console.log('Undo method called, undoCount:', undoCount);
