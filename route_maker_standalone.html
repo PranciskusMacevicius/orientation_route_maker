@@ -175,7 +175,11 @@
     <!-- Google Maps API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxUx71FnVZj95ze2B7gs99NSzdIl-957k&callback=initMap&libraries=geometry"></script>
     
-    <!-- jsPDF for PDF generation -->
+    <!-- pdfmake for professional PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    
+    <!-- Fallback: jsPDF if pdfmake fails -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Application JavaScript -->
@@ -480,7 +484,182 @@
             }
             
             try {
-                // Create new PDF document
+                // Check if pdfmake is available, fallback to jsPDF
+                if (typeof pdfMake === 'undefined') {
+                    console.log('pdfmake not available, falling back to jsPDF');
+                    generatePDFWithJsPDF();
+                    return;
+                }
+                
+                // Update next point coordinates for each waypoint
+                for (let i = 0; i < waypoints.length; i++) {
+                    if (i < waypoints.length - 1) {
+                        waypoints[i].nextPoint = waypoints[i + 1];
+                    }
+                }
+                
+                // Create waypoint data for PDF
+                const waypointData = waypoints.map((wp, index) => {
+                    const isFinish = wp.number === 'F';
+                    const nextPointCoords = index < waypoints.length - 1 ? 
+                        convertToUTM(waypoints[index + 1].position.lat(), waypoints[index + 1].position.lng()) : 
+                        'N/A';
+                    
+                    return {
+                        number: wp.number === 'S' ? 'Startas' : wp.number === 'F' ? 'Finišas' : wp.number,
+                        coordinates: convertToUTM(wp.position.lat(), wp.position.lng()),
+                        letter: wp.letter,
+                        nextCoordinates: isFinish ? null : nextPointCoords,
+                        isFinish: isFinish
+                    };
+                });
+                
+                // Create PDF document definition
+                const docDefinition = {
+                    pageSize: 'A4',
+                    pageMargins: [0, 0, 0, 0], // No margins like original
+                    content: [],
+                    styles: {
+                        cellHeader: {
+                            fontSize: 14,
+                            bold: true,
+                            alignment: 'center',
+                            margin: [0, 5, 0, 5]
+                        },
+                        cellText: {
+                            fontSize: 12,
+                            alignment: 'center',
+                            margin: [0, 3, 0, 3]
+                        },
+                        cellBorder: {
+                            border: [true, true, true, true],
+                            borderColor: '#000000'
+                        }
+                    }
+                };
+                
+                // Create grid layout (2x4 = 8 waypoints per page)
+                const POINTS_PER_PAGE = 8;
+                const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
+                
+                for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    const startIndex = pageIndex * POINTS_PER_PAGE;
+                    const endIndex = Math.min(startIndex + POINTS_PER_PAGE, waypointData.length);
+                    const pageWaypoints = waypointData.slice(startIndex, endIndex);
+                    
+                    // Create table for this page
+                    const tableBody = [];
+                    
+                    // Create 4 rows (2 waypoints per row)
+                    for (let row = 0; row < 4; row++) {
+                        const tableRow = [];
+                        
+                        for (let col = 0; col < 2; col++) {
+                            const waypointIndex = row * 2 + col;
+                            const wp = pageWaypoints[waypointIndex];
+                            
+                            if (wp) {
+                                // Create cell content
+                                const cellContent = [];
+                                
+                                // Add waypoint info
+                                cellContent.push({
+                                    text: `Taškas: ${wp.number}`,
+                                    style: 'cellText',
+                                    alignment: 'center'
+                                });
+                                
+                                cellContent.push({
+                                    text: `Koordinatės: ${wp.coordinates}`,
+                                    style: 'cellText',
+                                    alignment: 'center'
+                                });
+                                
+                                cellContent.push({
+                                    text: `Raidė: ${wp.letter}`,
+                                    style: 'cellText',
+                                    alignment: 'center'
+                                });
+                                
+                                if (!wp.isFinish) {
+                                    cellContent.push({
+                                        text: `Sekančio taško koordinatės: ${wp.nextCoordinates}`,
+                                        style: 'cellText',
+                                        alignment: 'center'
+                                    });
+                                }
+                                
+                                tableRow.push({
+                                    stack: cellContent,
+                                    border: [true, true, true, true],
+                                    fillColor: '#ffffff',
+                                    margin: [5, 5, 5, 5]
+                                });
+                            } else {
+                                // Empty cell
+                                tableRow.push({
+                                    text: '',
+                                    border: [true, true, true, true],
+                                    fillColor: '#ffffff'
+                                });
+                            }
+                        }
+                        
+                        tableBody.push(tableRow);
+                    }
+                    
+                    // Add table to document
+                    if (pageIndex > 0) {
+                        docDefinition.content.push({ text: '', pageBreak: 'before' });
+                    }
+                    
+                    docDefinition.content.push({
+                        table: {
+                            headerRows: 0,
+                            widths: ['50%', '50%'],
+                            body: tableBody
+                        },
+                        layout: {
+                            hLineWidth: function (i, node) {
+                                return 2; // Thick borders
+                            },
+                            vLineWidth: function (i, node) {
+                                return 2; // Thick borders
+                            },
+                            hLineColor: function (i, node) {
+                                return '#000000';
+                            },
+                            vLineColor: function (i, node) {
+                                return '#000000';
+                            }
+                        }
+                    });
+                }
+                
+                // Generate filename with timestamp
+                const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_');
+                const fileName = `route_points_${timestamp}.pdf`;
+                
+                // Generate and download PDF
+                pdfMake.createPdf(docDefinition).download(fileName);
+                
+                showStatus(`PDF saved as ${fileName}`, 'success');
+                console.log('PDF generated successfully with pdfmake');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showStatus('Error generating PDF: ' + error.message, 'error');
+            }
+        }
+
+        // Fallback PDF generation with jsPDF
+        function generatePDFWithJsPDF() {
+            try {
+                if (typeof window.jspdf === 'undefined') {
+                    showStatus('PDF libraries not loaded. Please refresh the page and try again.', 'error');
+                    return;
+                }
+
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
@@ -572,11 +751,11 @@
                 // Save the PDF
                 doc.save(fileName);
                 
-                showStatus(`PDF saved as ${fileName}`, 'success');
-                console.log('PDF generated successfully');
+                showStatus(`PDF saved as ${fileName} (using jsPDF)`, 'success');
+                console.log('PDF generated successfully with jsPDF fallback');
                 
             } catch (error) {
-                console.error('Error generating PDF:', error);
+                console.error('Error generating PDF with jsPDF:', error);
                 showStatus('Error generating PDF: ' + error.message, 'error');
             }
         }
