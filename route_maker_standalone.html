@@ -195,10 +195,18 @@
         const DEFAULT_LATITUDE = 55.030180;
         const DEFAULT_LONGITUDE = 24.370464;
 
-        // Initialize the map
+        // Initialize the map with infinite retry logic
+        let mapInitAttempts = 0;
+        
         function initMap() {
             try {
-                console.log('Initializing Google Maps...');
+                mapInitAttempts++;
+                console.log('Initializing Google Maps... (attempt ' + mapInitAttempts + ')');
+                
+                // Check if Google Maps is available
+                if (typeof google === 'undefined' || !google.maps) {
+                    throw new Error('Google Maps API not loaded');
+                }
                 
                 map = new google.maps.Map(document.getElementById('map'), {
                     center: { lat: DEFAULT_LATITUDE, lng: DEFAULT_LONGITUDE },
@@ -228,26 +236,46 @@
                     document.getElementById('coordinateDisplay').textContent = utmCoords;
                 });
 
+                // Add idle listener to ensure map is fully loaded
+                map.addListener('idle', function() {
+                    console.log('Google Maps fully loaded and ready');
+                    isMapReady = true;
+                    onMapReady();
+                });
+
                 console.log('Google Maps initialized successfully');
-                isMapReady = true;
-                onMapReady();
                 
             } catch (error) {
                 console.error('Error initializing Google Maps:', error);
-                showStatus('Error loading Google Maps. Please check your internet connection and try refreshing the page.', 'error');
-                document.getElementById('loading').textContent = 'Error loading Google Maps. Please refresh the page.';
+                console.log('Retrying map initialization in 2 seconds...');
+                showStatus('Google Maps failed to load. Retrying... (attempt ' + mapInitAttempts + ')', 'warning');
+                setTimeout(initMap, 2000);
             }
         }
 
-        // Add timeout for map loading
+        // Add timeout for map loading with infinite retry
         window.addEventListener('load', function() {
             setTimeout(function() {
                 if (!isMapReady) {
-                    console.log('Map loading timeout - checking for errors');
-                    showStatus('Google Maps is taking longer than expected to load. Please check your internet connection.', 'warning');
+                    console.log('Map loading timeout - retrying...');
+                    showStatus('Google Maps is taking longer than expected. Retrying...', 'warning');
+                    initMap();
                 }
-            }, 10000); // 10 second timeout
+            }, 6000); // 6 second timeout
         });
+
+        // Fallback initialization if Google Maps doesn't load
+        setTimeout(function() {
+            if (!isMapReady && mapInitAttempts === 0) {
+                console.log('Google Maps callback not called - attempting manual initialization');
+                if (typeof google !== 'undefined' && google.maps) {
+                    initMap();
+                } else {
+                    showStatus('Google Maps API not available. Please check your internet connection.', 'error');
+                    document.getElementById('loading').textContent = 'Google Maps API not available - Check Internet';
+                }
+            }
+        }, 3000); // 3 second fallback
 
         function onMapReady() {
             console.log('Map is ready for interaction!');
