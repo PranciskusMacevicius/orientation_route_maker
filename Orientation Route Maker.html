@@ -652,15 +652,15 @@
                                 fillColor: '#ffffff'
                             });
                         } else {
-                            // Add empty cell if no second waypoint
+                            // Add empty cell if no second waypoint to maintain table structure
                             tableRow.push({
                                 text: '',
-                                border: [true, true, true, true],
+                                border: [false, false, false, false],
                                 fillColor: '#ffffff'
                             });
                         }
                         
-                        // Always add row (even with empty cell)
+                        // Always add row to maintain consistent table structure
                         tableBody.push(tableRow);
                     }
                     
