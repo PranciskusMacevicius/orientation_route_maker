@@ -660,7 +660,7 @@
                     now.getHours().toString().padStart(2, '0') + 
                     now.getMinutes().toString().padStart(2, '0') + 
                     now.getSeconds().toString().padStart(2, '0');
-                const fileName = `orientation_route_maker_${timestamp}.pdf`;
+                const fileName = `orientation_${timestamp}.pdf`;
                 
                 // Generate and download PDF
                 pdfMake.createPdf(docDefinition).download(fileName);
@@ -785,7 +785,7 @@
                     now.getHours().toString().padStart(2, '0') + 
                     now.getMinutes().toString().padStart(2, '0') + 
                     now.getSeconds().toString().padStart(2, '0');
-                const fileName = `orientation_route_maker_${timestamp}.pdf`;
+                const fileName = `orientation_${timestamp}.pdf`;
                 
                 // Save the PDF
                 doc.save(fileName);
