@@ -527,7 +527,7 @@
                 };
                 
                 // Create grid layout (2x4 = 8 waypoints per page with larger cells)
-                const POINTS_PER_PAGE = 8;
+                const POINTS_PER_PAGE = 12;
                 const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
                 
                 for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -538,63 +538,90 @@
                     // Create table for this page
                     const tableBody = [];
                     
-                    // Create 4 rows (2 waypoints per row) - larger cells
-                    for (let row = 0; row < 4; row++) {
+                    // Create rows only for existing waypoints (2 per row)
+                    for (let i = 0; i < pageWaypoints.length; i += 2) {
                         const tableRow = [];
                         
-                        for (let col = 0; col < 2; col++) {
-                            const waypointIndex = row * 2 + col;
-                            const wp = pageWaypoints[waypointIndex];
+                        // Add first waypoint in row
+                        const wp1 = pageWaypoints[i];
+                        if (wp1) {
+                            const cellContent1 = [];
                             
-                            if (wp) {
-                                // Create cell content
-                                const cellContent = [];
-                                
-                                // Add waypoint info
-                                cellContent.push({
-                                    text: `Taškas: ${wp.number}`,
+                            cellContent1.push({
+                                text: `Taškas: ${wp1.number}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            cellContent1.push({
+                                text: `Koordinatės: ${wp1.coordinates}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            cellContent1.push({
+                                text: `Raidė: ${wp1.letter}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            if (!wp1.isFinish) {
+                                cellContent1.push({
+                                    text: `Sekančio taško koordinatės: ${wp1.nextCoordinates}`,
                                     style: 'cellText',
                                     alignment: 'center'
-                                });
-                                
-                                cellContent.push({
-                                    text: `Koordinatės: ${wp.coordinates}`,
-                                    style: 'cellText',
-                                    alignment: 'center'
-                                });
-                                
-                                cellContent.push({
-                                    text: `Raidė: ${wp.letter}`,
-                                    style: 'cellText',
-                                    alignment: 'center'
-                                });
-                                
-                                if (!wp.isFinish) {
-                                    cellContent.push({
-                                        text: `Sekančio taško koordinatės: ${wp.nextCoordinates}`,
-                                        style: 'cellText',
-                                        alignment: 'center'
-                                    });
-                                }
-                                
-                                tableRow.push({
-                                    stack: cellContent,
-                                    border: [true, true, true, true],
-                                    fillColor: '#ffffff',
-                                    
-                                });
-                            } else {
-                                // Empty cell
-                                tableRow.push({
-                                    text: '',
-                                    border: [true, true, true, true],
-                                    fillColor: '#ffffff',
-                                
                                 });
                             }
+                            
+                            tableRow.push({
+                                stack: cellContent1,
+                                border: [true, true, true, true],
+                                fillColor: '#ffffff'
+                            });
                         }
                         
-                        tableBody.push(tableRow);
+                        // Add second waypoint in row (if exists)
+                        const wp2 = pageWaypoints[i + 1];
+                        if (wp2) {
+                            const cellContent2 = [];
+                            
+                            cellContent2.push({
+                                text: `Taškas: ${wp2.number}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            cellContent2.push({
+                                text: `Koordinatės: ${wp2.coordinates}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            cellContent2.push({
+                                text: `Raidė: ${wp2.letter}`,
+                                style: 'cellText',
+                                alignment: 'center'
+                            });
+                            
+                            if (!wp2.isFinish) {
+                                cellContent2.push({
+                                    text: `Sekančio taško koordinatės: ${wp2.nextCoordinates}`,
+                                    style: 'cellText',
+                                    alignment: 'center'
+                                });
+                            }
+                            
+                            tableRow.push({
+                                stack: cellContent2,
+                                border: [true, true, true, true],
+                                fillColor: '#ffffff'
+                            });
+                        }
+                        
+                        // Only add row if it has at least one waypoint
+                        if (tableRow.length > 0) {
+                            tableBody.push(tableRow);
+                        }
                     }
                     
                     // Add table to document
