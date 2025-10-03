@@ -451,11 +451,29 @@
                     marker: marker
                 });
                 
+                // Update waypoint numbering after adding back
+                updateWaypointNumbering();
                 updateConnections();
                 undoCount--;
                 console.log('Redo: restored waypoint', waypointData.number, 'undo count:', undoCount);
             } else {
                 console.log('Nothing to redo');
+            }
+        }
+
+        function updateWaypointNumbering() {
+            if (waypoints.length === 0) return;
+            
+            for (let i = 0; i < waypoints.length; i++) {
+                const wp = waypoints[i];
+                if (i === 0) {
+                    wp.number = 'S';
+                } else if (i === waypoints.length - 1) {
+                    wp.number = 'F';
+                } else {
+                    wp.number = i.toString();
+                }
+                wp.marker.setLabel(wp.number);
             }
         }
 
