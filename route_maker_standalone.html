@@ -526,8 +526,8 @@
                     }
                 };
                 
-                // Create grid layout (2x2 = 4 waypoints per page with larger cells)
-                const POINTS_PER_PAGE = 4;
+                // Create grid layout (2x4 = 8 waypoints per page with larger cells)
+                const POINTS_PER_PAGE = 8;
                 const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
                 
                 for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -538,8 +538,8 @@
                     // Create table for this page
                     const tableBody = [];
                     
-                    // Create 2 rows (2 waypoints per row) - larger cells
-                    for (let row = 0; row < 2; row++) {
+                    // Create 4 rows (2 waypoints per row) - larger cells
+                    for (let row = 0; row < 4; row++) {
                         const tableRow = [];
                         
                         for (let col = 0; col < 2; col++) {
