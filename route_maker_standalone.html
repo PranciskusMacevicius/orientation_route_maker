@@ -526,8 +526,8 @@
                     }
                 };
                 
-                // Create grid layout (2x4 = 8 waypoints per page)
-                const POINTS_PER_PAGE = 8;
+                // Create grid layout (2x2 = 4 waypoints per page with larger cells)
+                const POINTS_PER_PAGE = 4;
                 const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
                 
                 for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -538,8 +538,8 @@
                     // Create table for this page
                     const tableBody = [];
                     
-                    // Create 4 rows (2 waypoints per row)
-                    for (let row = 0; row < 4; row++) {
+                    // Create 2 rows (2 waypoints per row) - larger cells
+                    for (let row = 0; row < 2; row++) {
                         const tableRow = [];
                         
                         for (let col = 0; col < 2; col++) {
@@ -581,14 +581,15 @@
                                     stack: cellContent,
                                     border: [true, true, true, true],
                                     fillColor: '#ffffff',
-                                    margin: [5, 5, 5, 5]
+                                    margin: [10, 50, 10, 50] // Increased vertical padding to make cells taller
                                 });
                             } else {
                                 // Empty cell
                                 tableRow.push({
                                     text: '',
                                     border: [true, true, true, true],
-                                    fillColor: '#ffffff'
+                                    fillColor: '#ffffff',
+                                    margin: [10, 50, 10, 50] // Same padding as filled cells
                                 });
                             }
                         }
@@ -676,16 +677,24 @@
                     const pageWidth = doc.internal.pageSize.getWidth();
                     const pageHeight = doc.internal.pageSize.getHeight();
                     const cellWidth = pageWidth / cols;
-                    const cellHeight = pageHeight / rows;
+                    const cellHeight = pageHeight / 2; // Double the height - use only 2 rows worth of space
+                    
+                    // Debug output
+                    console.log('PDF Debug - Page:', pageWidth, 'x', pageHeight);
+                    console.log('PDF Debug - Cell:', cellWidth, 'x', cellHeight);
+                    console.log('PDF Debug - Grid: 2x4, but using 2 physical rows');
                     
                     // Draw borders
                     doc.setLineWidth(2);
                     for (let i = 0; i < actualWaypoints; i++) {
-                        const row = Math.floor(i / cols);
+                        const logicalRow = Math.floor(i / cols);
                         const col = i % cols;
                         
+                        // Map 4 logical rows to 2 physical rows
+                        const physicalRow = Math.floor(logicalRow / 2);
+                        
                         const cellX = col * cellWidth;
-                        const cellY = row * cellHeight;
+                        const cellY = physicalRow * cellHeight;
                         
                         // Draw cell border
                         doc.rect(cellX, cellY, cellWidth, cellHeight);
@@ -695,11 +704,14 @@
                     doc.setLineWidth(0.5);
                     for (let i = 0; i < actualWaypoints; i++) {
                         const wp = waypoints[startIndex + i];
-                        const row = Math.floor(i / cols);
+                        const logicalRow = Math.floor(i / cols);
                         const col = i % cols;
                         
+                        // Map 4 logical rows to 2 physical rows
+                        const physicalRow = Math.floor(logicalRow / 2);
+                        
                         const cellX = col * cellWidth;
-                        const cellY = row * cellHeight;
+                        const cellY = physicalRow * cellHeight;
                         const tableRowHeight = cellHeight / 4;
                         
                         // Draw internal lines

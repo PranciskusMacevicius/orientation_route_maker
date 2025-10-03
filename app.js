@@ -286,16 +286,24 @@ function generatePDF() {
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const cellWidth = pageWidth / cols;
-            const cellHeight = pageHeight / rows;
+            const cellHeight = pageHeight / 2; // Double the height - use only 2 rows worth of space
+            
+            // Debug: log the dimensions
+            console.log('Page dimensions:', pageWidth, 'x', pageHeight);
+            console.log('Cell dimensions:', cellWidth, 'x', cellHeight);
+            console.log('Grid:', cols, 'x', rows);
             
             // Draw borders
             doc.setLineWidth(2);
             for (let i = 0; i < actualWaypoints; i++) {
-                const row = Math.floor(i / cols);
+                const logicalRow = Math.floor(i / cols);
                 const col = i % cols;
                 
+                // Map 4 logical rows to 2 physical rows
+                const physicalRow = Math.floor(logicalRow / 2);
+                
                 const cellX = col * cellWidth;
-                const cellY = row * cellHeight;
+                const cellY = physicalRow * cellHeight;
                 
                 // Draw cell border
                 doc.rect(cellX, cellY, cellWidth, cellHeight);
@@ -305,12 +313,15 @@ function generatePDF() {
             doc.setLineWidth(0.5);
             for (let i = 0; i < actualWaypoints; i++) {
                 const wp = waypoints[startIndex + i];
-                const row = Math.floor(i / cols);
+                const logicalRow = Math.floor(i / cols);
                 const col = i % cols;
                 
+                // Map 4 logical rows to 2 physical rows
+                const physicalRow = Math.floor(logicalRow / 2);
+                
                 const cellX = col * cellWidth;
-                const cellY = row * cellHeight;
-                const tableRowHeight = cellHeight / 4;
+                const cellY = physicalRow * cellHeight;
+                const tableRowHeight = cellHeight / 4; // 4 internal rows per cell
                 
                 // Draw internal lines
                 for (let tableRow = 1; tableRow < 4; tableRow++) {
