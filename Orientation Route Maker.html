@@ -535,7 +535,6 @@
                         },
                         cellText: {
                             fontSize: 16,
-                            font: 'Times-Roman',
                             alignment: 'center',
                             margin: [0, 5, 0, 5]
                         },
@@ -591,6 +590,14 @@
                                     style: 'cellText',
                                     alignment: 'center'
                                 });
+                            } else {
+                                // Add the same line structure for finish point to match height
+                                cellContent1.push({
+                                    text: `Sekančio taško koordinatės: N/A`,
+                                    style: 'cellText',
+                                    alignment: 'center',
+                                    color: 'white'
+                                });
                             }
                             
                             tableRow.push({
@@ -629,6 +636,14 @@
                                     style: 'cellText',
                                     alignment: 'center'
                                 });
+                            } else {
+                                // Add the same line structure for finish point to match height
+                                cellContent2.push({
+                                    text: `Sekančio taško koordinatės: N/A`,
+                                    style: 'cellText',
+                                    alignment: 'center',
+                                    color: 'white'
+                                });
                             }
                             
                             tableRow.push({
@@ -636,12 +651,17 @@
                                 border: [true, true, true, true],
                                 fillColor: '#ffffff'
                             });
+                        } else {
+                            // Add empty cell if no second waypoint
+                            tableRow.push({
+                                text: '',
+                                border: [true, true, true, true],
+                                fillColor: '#ffffff'
+                            });
                         }
                         
-                        // Only add row if it has at least one waypoint
-                        if (tableRow.length > 0) {
-                            tableBody.push(tableRow);
-                        }
+                        // Always add row (even with empty cell)
+                        tableBody.push(tableRow);
                     }
                     
                     // Add table to document
