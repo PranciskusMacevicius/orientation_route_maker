@@ -1,0 +1,23 @@
+{
+  "name": "orientation-route-maker",
+  "version": "1.0.0",
+  "description": "A TypeScript-based orientation route maker with Google Maps integration",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "dev": "concurrently \"tsc --watch\" \"live-server --port=3000 --open=index.html\"",
+    "dev:build": "tsc && live-server --port=3000 --open=index.html",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/google.maps": "^3.54.0",
+    "live-server": "^1.2.2",
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["orientation", "route", "maps", "typescript"],
+  "author": "",
+  "license": "MIT"
+}

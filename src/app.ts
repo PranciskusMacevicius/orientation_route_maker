@@ -1,0 +1,854 @@
+// Global types
+interface Waypoint {
+    position: google.maps.LatLng;
+    number: string;
+    letter: string;
+    marker: google.maps.Marker;
+    nextPoint?: Waypoint;
+}
+
+interface WaypointData {
+    position: google.maps.LatLng;
+    number: string;
+    letter: string;
+}
+
+interface PDFWaypointData {
+    number: string;
+    coordinates: string;
+    letter: string;
+    nextCoordinates: string | null;
+    isFinish: boolean;
+}
+
+// Global variables
+let map: google.maps.Map;
+let waypoints: Waypoint[] = [];
+let markers: google.maps.Marker[] = [];
+let polyline: google.maps.Polyline | null = null;
+let distanceLabels: google.maps.Marker[] = [];
+let isMapReady: boolean = false;
+let undoHistory: WaypointData[] = [];
+let redoHistory: WaypointData[] = [];
+let undoCount: number = 0;
+const MAX_HISTORY_SIZE: number = 20;
+let showDistances: boolean = true;
+
+// Default coordinates for Rukla, Lithuania
+const DEFAULT_LATITUDE: number = 55.030180;
+const DEFAULT_LONGITUDE: number = 24.370464;
+
+// Initialize the map with infinite retry logic
+let mapInitAttempts: number = 0;
+
+function initMap(): void {
+    try {
+        mapInitAttempts++;
+        console.log('Initializing Google Maps... (attempt ' + mapInitAttempts + ')');
+        
+        // Check if Google Maps is available
+        if (typeof google === 'undefined' || !google.maps) {
+            throw new Error('Google Maps API not loaded');
+        }
+        
+        map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
+            center: { lat: DEFAULT_LATITUDE, lng: DEFAULT_LONGITUDE },
+            zoom: 13,
+            mapTypeId: google.maps.MapTypeId.SATELLITE,
+            draggable: false,
+            zoomControl: false,
+            scrollwheel: false,
+            disableDoubleClickZoom: true,
+            clickableIcons: false
+        });
+
+        // Add click listener for waypoints
+        map.addListener('click', function(event: google.maps.MapMouseEvent) {
+            if (!isMapReady) {
+                console.log('Map not ready - click ignored');
+                return;
+            }
+            if (event.latLng) {
+                addWaypoint(event.latLng);
+            }
+        });
+
+        // Add mouse move listener for coordinate display
+        map.addListener('mousemove', function(event: google.maps.MapMouseEvent) {
+            if (event.latLng) {
+                const lat = event.latLng.lat();
+                const lng = event.latLng.lng();
+                const utmCoords = convertToUTM(lat, lng);
+                const coordinateDisplay = document.getElementById('coordinateDisplay');
+                if (coordinateDisplay) {
+                    coordinateDisplay.textContent = utmCoords;
+                }
+            }
+        });
+
+        // Add idle listener to ensure map is fully loaded
+        map.addListener('idle', function() {
+            console.log('Google Maps fully loaded and ready');
+            isMapReady = true;
+            onMapReady();
+        });
+
+        console.log('Google Maps initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing Google Maps:', error);
+        console.log('Retrying map initialization in 2 seconds...');
+        showStatus('Google Maps failed to load. Retrying... (attempt ' + mapInitAttempts + ')', 'warning');
+        setTimeout(initMap, 2000);
+    }
+}
+
+// Add timeout for map loading with infinite retry
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (!isMapReady) {
+            console.log('Map loading timeout - retrying...');
+            showStatus('Google Maps is taking longer than expected. Retrying...', 'warning');
+            initMap();
+        }
+    }, 6000); // 6 second timeout
+});
+
+// Fallback initialization if Google Maps doesn't load
+setTimeout(function() {
+    if (!isMapReady && mapInitAttempts === 0) {
+        console.log('Google Maps callback not called - attempting manual initialization');
+        if (typeof google !== 'undefined' && google.maps) {
+            initMap();
+        } else {
+            showStatus('Google Maps API not available. Please check your internet connection.', 'error');
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.textContent = 'Google Maps API not available - Check Internet';
+            }
+        }
+    }
+}, 3000); // 3 second fallback
+
+function onMapReady(): void {
+    console.log('Map is ready for interaction!');
+    
+    // Enable map interactions
+    map.setOptions({
+        draggable: true,
+        zoomControl: true,
+        scrollwheel: true,
+        disableDoubleClickZoom: false,
+        clickableIcons: true
+    });
+    
+    // Hide loading message
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+    
+    // Enable all buttons
+    enableButtons(true);
+}
+
+function enableButtons(enabled: boolean): void {
+    const buttons = ['zoomInBtn', 'zoomOutBtn', 'resetBtn', 'invertBtn', 'undoBtn', 'redoBtn', 'toggleDistancesBtn', 'pdfBtn'];
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            (btn as HTMLButtonElement).disabled = !enabled;
+        }
+    });
+}
+
+function addWaypoint(latLng: google.maps.LatLng): void {
+    const pointNumber = waypoints.length === 0 ? 'S' : 'F';
+    
+    // Update previous waypoint number if it's not the first
+    if (waypoints.length > 1) {
+        waypoints[waypoints.length - 1].number = (waypoints.length - 1).toString();
+        waypoints[waypoints.length - 1].marker.setLabel(waypoints[waypoints.length - 1].number);
+    }
+
+    const marker = new google.maps.Marker({
+        position: latLng,
+        map: map,
+        label: pointNumber
+    });
+
+    const randomLetter = generateRandomLetter();
+
+    waypoints.push({
+        position: latLng,
+        number: pointNumber,
+        letter: randomLetter,
+        marker: marker
+    });
+
+    updateConnections();
+    console.log(`Added waypoint ${pointNumber} at ${latLng.lat()}, ${latLng.lng()}`);
+}
+
+function generateRandomLetter(): string {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return letters.charAt(Math.floor(Math.random() * letters.length));
+}
+
+function calculateDistance(point1: google.maps.LatLng, point2: google.maps.LatLng): number {
+    return google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+}
+
+function addDistanceLabels(): void {
+    for (let i = 0; i < waypoints.length - 1; i++) {
+        const point1 = waypoints[i].position;
+        const point2 = waypoints[i + 1].position;
+        const distance = calculateDistance(point1, point2);
+        
+        // Calculate midpoint for label position
+        const midLat = (point1.lat() + point2.lat()) / 2;
+        const midLng = (point1.lng() + point2.lng()) / 2;
+        
+        // Format distance (meters to appropriate unit)
+        let distanceText: string;
+        if (distance < 1000) {
+            distanceText = Math.round(distance) + 'm';
+        } else {
+            distanceText = (distance / 1000).toFixed(1) + 'km';
+        }
+        
+        // Create distance label
+        const label = new google.maps.Marker({
+            position: { lat: midLat, lng: midLng },
+            map: map,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg width="60" height="30" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="60" height="30" fill="white" stroke="red" stroke-width="2" rx="5"/>
+                        <text x="30" y="20" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="red">${distanceText}</text>
+                    </svg>
+                `),
+                scaledSize: new google.maps.Size(60, 30),
+                anchor: new google.maps.Point(30, 15)
+            },
+            zIndex: 1000
+        });
+        
+        distanceLabels.push(label);
+    }
+}
+
+function toggleDistances(): void {
+    showDistances = !showDistances;
+    updateConnections();
+    
+    const btn = document.getElementById('toggleDistancesBtn');
+    if (btn) {
+        btn.textContent = showDistances ? 'Hide Distances' : 'Show Distances';
+        btn.style.background = showDistances ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
+    }
+}
+
+function updateConnections(): void {
+    if (polyline) {
+        polyline.setMap(null);
+    }
+    
+    // Clear existing distance labels
+    distanceLabels.forEach(label => label.setMap(null));
+    distanceLabels = [];
+    
+    if (waypoints.length > 1) {
+        const path = waypoints.map(function(wp) { return wp.position; });
+        polyline = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#FF0000',
+            strokeOpacity: 1.0,
+            strokeWeight: 2
+        });
+        polyline.setMap(map);
+        
+        // Add distance labels if enabled
+        if (showDistances) {
+            addDistanceLabels();
+        }
+    }
+}
+
+function clearWaypoints(): void {
+    waypoints.forEach(function(wp) {
+        wp.marker.setMap(null);
+    });
+    if (polyline) polyline.setMap(null);
+    
+    // Clear distance labels
+    distanceLabels.forEach(label => label.setMap(null));
+    distanceLabels = [];
+    
+    waypoints = [];
+    clearHistory();
+    console.log('All waypoints cleared');
+}
+
+function invertRoute(): void {
+    if (waypoints.length < 2) return;
+    
+    waypoints.reverse();
+    for (let i = 0; i < waypoints.length; i++) {
+        if (i === 0) {
+            waypoints[i].number = 'S';
+            waypoints[i].marker.setLabel('S');
+        } else if (i === waypoints.length - 1) {
+            waypoints[i].number = 'F';
+            waypoints[i].marker.setLabel('F');
+        } else {
+            waypoints[i].number = i.toString();
+            waypoints[i].marker.setLabel(i.toString());
+        }
+    }
+    updateConnections();
+    console.log('Route inverted');
+}
+
+function undo(): void {
+    console.log('Undo method called, undoCount:', undoCount);
+    
+    if (undoCount >= MAX_HISTORY_SIZE) {
+        console.log('Undo limit reached (20 operations)');
+        showStatus('Undo limit reached (20 operations)', 'warning');
+        return;
+    }
+    
+    if (waypoints.length > 0) {
+        const lastWaypoint = waypoints[waypoints.length - 1];
+        console.log('Removing waypoint:', lastWaypoint.number);
+        
+        // Store for redo
+        redoHistory.push({
+            position: lastWaypoint.position,
+            number: lastWaypoint.number,
+            letter: lastWaypoint.letter
+        });
+        
+        lastWaypoint.marker.setMap(null);
+        waypoints.pop();
+        updateConnections();
+        
+        // Update waypoint numbers
+        for (let i = 0; i < waypoints.length; i++) {
+            if (i === 0) {
+                waypoints[i].number = 'S';
+                waypoints[i].marker.setLabel('S');
+            } else if (i === waypoints.length - 1) {
+                waypoints[i].number = 'F';
+                waypoints[i].marker.setLabel('F');
+            } else {
+                waypoints[i].number = i.toString();
+                waypoints[i].marker.setLabel(i.toString());
+            }
+        }
+        
+        undoCount++;
+        console.log('Waypoint removed, new length:', waypoints.length, 'undo count:', undoCount);
+    } else {
+        console.log('No waypoints to remove');
+    }
+}
+
+function redo(): void {
+    if (redoHistory.length > 0) {
+        const waypointData = redoHistory.pop();
+        if (waypointData) {
+            const marker = new google.maps.Marker({
+                position: waypointData.position,
+                map: map,
+                label: waypointData.number
+            });
+
+            waypoints.push({
+                position: waypointData.position,
+                number: waypointData.number,
+                letter: waypointData.letter,
+                marker: marker
+            });
+            
+            // Update waypoint numbering after adding back
+            updateWaypointNumbering();
+            updateConnections();
+            undoCount--;
+            console.log('Redo: restored waypoint', waypointData.number, 'undo count:', undoCount);
+        }
+    } else {
+        console.log('Nothing to redo');
+    }
+}
+
+function updateWaypointNumbering(): void {
+    if (waypoints.length === 0) return;
+    
+    for (let i = 0; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        if (i === 0) {
+            wp.number = 'S';
+        } else if (i === waypoints.length - 1) {
+            wp.number = 'F';
+        } else {
+            wp.number = i.toString();
+        }
+        wp.marker.setLabel(wp.number);
+    }
+}
+
+function clearHistory(): void {
+    undoHistory = [];
+    redoHistory = [];
+    undoCount = 0;
+    console.log('History cleared, undo count reset to 0');
+}
+
+function generatePDF(): void {
+    if (waypoints.length === 0) {
+        showStatus('No waypoints to generate PDF. Please add some points to the map first.', 'warning');
+        return;
+    }
+    
+    try {
+        // Check if pdfmake is available, fallback to jsPDF
+        if (typeof (window as any).pdfMake === 'undefined') {
+            console.log('pdfmake not available, falling back to jsPDF');
+            generatePDFWithJsPDF();
+            return;
+        }
+        
+        // Update next point coordinates for each waypoint
+        for (let i = 0; i < waypoints.length; i++) {
+            if (i < waypoints.length - 1) {
+                waypoints[i].nextPoint = waypoints[i + 1];
+            }
+        }
+        
+        // Create waypoint data for PDF
+        const waypointData: PDFWaypointData[] = waypoints.map((wp, index) => {
+            const isFinish = wp.number === 'F';
+            const nextPointCoords = index < waypoints.length - 1 ? 
+                convertToUTM(waypoints[index + 1].position.lat(), waypoints[index + 1].position.lng()) : 
+                'N/A';
+            
+            return {
+                number: wp.number === 'S' ? 'Startas' : wp.number === 'F' ? 'Finišas' : wp.number,
+                coordinates: convertToUTM(wp.position.lat(), wp.position.lng()),
+                letter: wp.letter,
+                nextCoordinates: isFinish ? null : nextPointCoords,
+                isFinish: isFinish
+            };
+        });
+        
+        // Create PDF document definition
+        const docDefinition = {
+            pageSize: 'A4',
+            pageMargins: [0, 0, 0, 0], // No margins like original
+            content: [] as any[],
+            styles: {
+                cellHeader: {
+                    fontSize: 14,
+                    bold: true,
+                    alignment: 'center' as const,
+                    margin: [0, 5, 0, 5]
+                },
+                cellText: {
+                    fontSize: 16,
+                    alignment: 'center' as const,
+                    margin: [0, 5, 0, 5]
+                },
+                cellBorder: {
+                    border: [true, true, true, true],
+                    borderColor: '#000000'
+                }
+            }
+        };
+        
+        // Create grid layout (2x4 = 8 waypoints per page with larger cells)
+        const POINTS_PER_PAGE = 12;
+        const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
+        
+        for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+            const startIndex = pageIndex * POINTS_PER_PAGE;
+            const endIndex = Math.min(startIndex + POINTS_PER_PAGE, waypointData.length);
+            const pageWaypoints = waypointData.slice(startIndex, endIndex);
+            
+            // Create table for this page
+            const tableBody: any[] = [];
+            
+            // Create rows only for existing waypoints (2 per row)
+            for (let i = 0; i < pageWaypoints.length; i += 2) {
+                const tableRow: any[] = [];
+                
+                // Add first waypoint in row
+                const wp1 = pageWaypoints[i];
+                if (wp1) {
+                    const cellContent1: any[] = [];
+                    
+                    cellContent1.push({
+                        text: `Taškas: ${wp1.number}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    cellContent1.push({
+                        text: `Koordinatės: ${wp1.coordinates}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    cellContent1.push({
+                        text: `Raidė: ${wp1.letter}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    if (!wp1.isFinish) {
+                        cellContent1.push({
+                            text: `Sekančio taško koordinatės: ${wp1.nextCoordinates}`,
+                            style: 'cellText',
+                            alignment: 'center'
+                        });
+                    } else {
+                        // Add the same line structure for finish point to match height
+                        cellContent1.push({
+                            text: `Sekančio taško koordinatės: N/A`,
+                            style: 'cellText',
+                            alignment: 'center',
+                            color: 'white'
+                        });
+                    }
+                    
+                    tableRow.push({
+                        stack: cellContent1,
+                        border: [true, true, true, true],
+                        fillColor: '#ffffff'
+                    });
+                }
+                
+                // Add second waypoint in row (if exists)
+                const wp2 = pageWaypoints[i + 1];
+                if (wp2) {
+                    const cellContent2: any[] = [];
+                    
+                    cellContent2.push({
+                        text: `Taškas: ${wp2.number}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    cellContent2.push({
+                        text: `Koordinatės: ${wp2.coordinates}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    cellContent2.push({
+                        text: `Raidė: ${wp2.letter}`,
+                        style: 'cellText',
+                        alignment: 'center'
+                    });
+                    
+                    if (!wp2.isFinish) {
+                        cellContent2.push({
+                            text: `Sekančio taško koordinatės: ${wp2.nextCoordinates}`,
+                            style: 'cellText',
+                            alignment: 'center'
+                        });
+                    } else {
+                        // Add the same line structure for finish point to match height
+                        cellContent2.push({
+                            text: `Sekančio taško koordinatės: N/A`,
+                            style: 'cellText',
+                            alignment: 'center',
+                            color: 'white'
+                        });
+                    }
+                    
+                    tableRow.push({
+                        stack: cellContent2,
+                        border: [true, true, true, true],
+                        fillColor: '#ffffff'
+                    });
+                } else {
+                    // Add empty cell if no second waypoint to maintain table structure
+                    tableRow.push({
+                        text: '',
+                        border: [false, false, false, false],
+                        fillColor: '#ffffff'
+                    });
+                }
+                
+                // Always add row to maintain consistent table structure
+                tableBody.push(tableRow);
+            }
+            
+            // Add table to document
+            if (pageIndex > 0) {
+                docDefinition.content.push({ text: '', pageBreak: 'before' });
+            }
+            
+            docDefinition.content.push({
+                table: {
+                    headerRows: 0,
+                    widths: ['50%', '50%'],
+                    body: tableBody
+                },
+                layout: {
+                    hLineWidth: function () {
+                        return 2; // Thick borders
+                    },
+                    vLineWidth: function () {
+                        return 2; // Thick borders
+                    },
+                    hLineColor: function () {
+                        return '#000000';
+                    },
+                    vLineColor: function () {
+                        return '#000000';
+                    }
+                }
+            });
+        }
+        
+        // Generate filename with timestamp (local time)
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() + 
+            (now.getMonth() + 1).toString().padStart(2, '0') + 
+            now.getDate().toString().padStart(2, '0') + '_' +
+            now.getHours().toString().padStart(2, '0') + 
+            now.getMinutes().toString().padStart(2, '0') + 
+            now.getSeconds().toString().padStart(2, '0');
+        const fileName = `orientation_${timestamp}.pdf`;
+        
+        // Generate and download PDF
+        (window as any).pdfMake.createPdf(docDefinition).download(fileName);
+        
+        showStatus(`PDF saved as ${fileName}`, 'success');
+        console.log('PDF generated successfully with pdfmake');
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        showStatus('Error generating PDF: ' + (error as Error).message, 'error');
+    }
+}
+
+// Fallback PDF generation with jsPDF
+function generatePDFWithJsPDF(): void {
+    try {
+        if (typeof (window as any).jspdf === 'undefined') {
+            showStatus('PDF libraries not loaded. Please refresh the page and try again.', 'error');
+            return;
+        }
+
+        const { jsPDF } = (window as any).jspdf;
+        const doc = new jsPDF();
+        
+        // Update next point coordinates for each waypoint
+        for (let i = 0; i < waypoints.length; i++) {
+            if (i < waypoints.length - 1) {
+                waypoints[i].nextPoint = waypoints[i + 1];
+            }
+        }
+        
+        const POINTS_PER_PAGE = 8; // 2x4 grid
+        const totalPages = Math.ceil(waypoints.length / POINTS_PER_PAGE);
+        
+        for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+            if (pageIndex > 0) {
+                doc.addPage();
+            }
+            
+            const startIndex = pageIndex * POINTS_PER_PAGE;
+            const endIndex = Math.min(startIndex + POINTS_PER_PAGE, waypoints.length);
+            const actualWaypoints = endIndex - startIndex;
+            
+            // Grid dimensions
+            const cols = 2;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const cellWidth = pageWidth / cols;
+            const cellHeight = pageHeight / 2; // Double the height - use only 2 rows worth of space
+            
+            // Debug output
+            console.log('PDF Debug - Page:', pageWidth, 'x', pageHeight);
+            console.log('PDF Debug - Cell:', cellWidth, 'x', cellHeight);
+            console.log('PDF Debug - Grid: 2x4, but using 2 physical rows');
+            
+            // Draw borders
+            doc.setLineWidth(2);
+            for (let i = 0; i < actualWaypoints; i++) {
+                const logicalRow = Math.floor(i / cols);
+                const col = i % cols;
+                
+                // Map 4 logical rows to 2 physical rows
+                const physicalRow = Math.floor(logicalRow / 2);
+                
+                const cellX = col * cellWidth;
+                const cellY = physicalRow * cellHeight;
+                
+                // Draw cell border
+                doc.rect(cellX, cellY, cellWidth, cellHeight);
+            }
+            
+            // Draw internal lines and add text
+            doc.setLineWidth(0.5);
+            for (let i = 0; i < actualWaypoints; i++) {
+                const wp = waypoints[startIndex + i];
+                const logicalRow = Math.floor(i / cols);
+                const col = i % cols;
+                
+                // Map 4 logical rows to 2 physical rows
+                const physicalRow = Math.floor(logicalRow / 2);
+                
+                const cellX = col * cellWidth;
+                const cellY = physicalRow * cellHeight;
+                const tableRowHeight = cellHeight / 4;
+                
+                // Draw internal lines
+                for (let tableRow = 1; tableRow < 4; tableRow++) {
+                    const y = cellY + tableRow * tableRowHeight;
+                    doc.line(cellX, y, cellX + cellWidth, y);
+                }
+                
+                // Add text content
+                const isFinish = wp.number === 'F';
+                const texts = isFinish ? [
+                    `Taškas: ${wp.number === 'S' ? 'Startas' : wp.number === 'F' ? 'Finišas' : wp.number}`,
+                    `Koordinatės: ${convertToUTM(wp.position.lat(), wp.position.lng())}`,
+                    `Raidė: ${wp.letter}`
+                ] : [
+                    `Taškas: ${wp.number === 'S' ? 'Startas' : wp.number === 'F' ? 'Finišas' : wp.number}`,
+                    `Koordinatės: ${convertToUTM(wp.position.lat(), wp.position.lng())}`,
+                    `Raidė: ${wp.letter}`,
+                    `Sekančio taško koordinatės: ${i < waypoints.length - 1 ? convertToUTM(waypoints[startIndex + i + 1].position.lat(), waypoints[startIndex + i + 1].position.lng()) : 'N/A'}`
+                ];
+                
+                // Draw text
+                doc.setFontSize(12);
+                for (let textRow = 0; textRow < texts.length; textRow++) {
+                    const text = texts[textRow];
+                    const textX = cellX + 5;
+                    const textY = cellY + (textRow + 1) * tableRowHeight - 5;
+                    doc.text(text, textX, textY);
+                }
+            }
+        }
+        
+        // Generate filename with timestamp (local time)
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() + 
+            (now.getMonth() + 1).toString().padStart(2, '0') + 
+            now.getDate().toString().padStart(2, '0') + '_' +
+            now.getHours().toString().padStart(2, '0') + 
+            now.getMinutes().toString().padStart(2, '0') + 
+            now.getSeconds().toString().padStart(2, '0');
+        const fileName = `orientation_${timestamp}.pdf`;
+        
+        // Save the PDF
+        doc.save(fileName);
+        
+        showStatus(`PDF saved as ${fileName} (using jsPDF)`, 'success');
+        console.log('PDF generated successfully with jsPDF fallback');
+        
+    } catch (error) {
+        console.error('Error generating PDF with jsPDF:', error);
+        showStatus('Error generating PDF: ' + (error as Error).message, 'error');
+    }
+}
+
+// UTM coordinate conversion (simplified implementation)
+function convertToUTM(latitude: number, longitude: number): string {
+    // Calculate the correct UTM zone
+    const zone = Math.floor((longitude + 180) / 6) + 1;
+    
+    const utm = convertWGS84ToUTM(latitude, longitude, zone);
+    const easting = utm[0];
+    const northing = utm[1];
+
+    // Get digits 2-5 from the right for easting
+    const eastingDigits = Math.abs(Math.floor(easting)) % 100000;
+    const eastingLast4 = Math.floor(eastingDigits / 10) % 10000;
+    
+    // Get digits 2-5 from the right for northing
+    const northingDigits = Math.abs(Math.floor(northing)) % 100000;
+    const northingLast4 = Math.floor(northingDigits / 10) % 10000;
+
+    return `${eastingLast4.toString().padStart(4, '0')} ${northingLast4.toString().padStart(4, '0')}`;
+}
+
+function convertWGS84ToUTM(latitude: number, longitude: number, zone: number): [number, number] {
+    // WGS84 ellipsoid parameters
+    const a = 6378137.0;              // Semi-major axis (meters)
+    const e = 0.0818191908;           // First eccentricity
+    const e1sq = 0.006739497;         // e1 squared
+    
+    // UTM parameters
+    const k0 = 0.9996;                // Scale factor
+    const E0 = 500000.0;              // False easting
+    const N0 = 0.0;                   // False northing (Northern hemisphere)
+    
+    // Convert to radians
+    const lat = latitude * Math.PI / 180;
+    const lon = longitude * Math.PI / 180;
+    const lon0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180; // Central meridian
+    
+    const dLon = lon - lon0;
+    
+    // Calculate M (meridional arc)
+    const M = a * ((1 - Math.pow(e, 2) / 4 - 3 * Math.pow(e, 4) / 64 - 5 * Math.pow(e, 6) / 256) * lat
+            - (3 * Math.pow(e, 2) / 8 + 3 * Math.pow(e, 4) / 32 + 45 * Math.pow(e, 6) / 1024) * Math.sin(2 * lat)
+            + (15 * Math.pow(e, 4) / 256 + 45 * Math.pow(e, 6) / 1024) * Math.sin(4 * lat)
+            - (35 * Math.pow(e, 6) / 3072) * Math.sin(6 * lat));
+    
+    // Calculate other parameters
+    const nu = a / Math.sqrt(1 - Math.pow(e * Math.sin(lat), 2));
+    const T = Math.pow(Math.tan(lat), 2);
+    const C = e1sq * Math.pow(Math.cos(lat), 2);
+    const A_coeff = dLon * Math.cos(lat);
+    
+    // Calculate easting
+    const easting = k0 * nu * (A_coeff + (1 - T + C) * Math.pow(A_coeff, 3) / 6
+            + (5 - 18 * T + Math.pow(T, 2) + 72 * C - 58 * e1sq) * Math.pow(A_coeff, 5) / 120) + E0;
+    
+    // Calculate northing
+    const northing = k0 * (M + nu * Math.tan(lat) * (Math.pow(A_coeff, 2) / 2
+            + (5 - T + 9 * C + 4 * Math.pow(C, 2)) * Math.pow(A_coeff, 4) / 24
+            + (61 - 58 * T + Math.pow(T, 2) + 600 * C - 330 * e1sq) * Math.pow(A_coeff, 6) / 720)) + N0;
+    
+    return [easting, northing];
+}
+
+function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'success' = 'info'): void {
+    const statusEl = document.getElementById('statusMessage');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.style.display = 'block';
+        statusEl.style.background = type === 'error' ? 'rgba(220, 53, 69, 0.9)' : 
+                                   type === 'warning' ? 'rgba(255, 193, 7, 0.9)' : 
+                                   type === 'success' ? 'rgba(40, 167, 69, 0.9)' : 
+                                   'rgba(0, 0, 0, 0.8)';
+        
+        setTimeout(() => {
+            statusEl.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// Initialize buttons as disabled
+document.addEventListener('DOMContentLoaded', function() {
+    enableButtons(false);
+});
+
+// Make functions available globally
+(window as any).initMap = initMap;
+(window as any).clearWaypoints = clearWaypoints;
+(window as any).invertRoute = invertRoute;
+(window as any).undo = undo;
+(window as any).redo = redo;
+(window as any).generatePDF = generatePDF;
+(window as any).toggleDistances = toggleDistances;
