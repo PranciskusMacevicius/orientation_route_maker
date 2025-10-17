@@ -168,6 +168,7 @@
             <button class="btn" id="invertBtn" onclick="invertRoute()">Invert Route</button>
             <button class="btn two-line" id="undoBtn" onclick="undo()">Remove Last<br>Point</button>
             <button class="btn two-line" id="redoBtn" onclick="redo()">Add Last<br>Removed Point</button>
+            <button class="btn" id="toggleDistancesBtn" onclick="toggleDistances()">Hide Distances</button>
             <button class="btn" id="pdfBtn" onclick="generatePDF()">Generate PDF</button>
         </div>
     </div>
@@ -189,11 +190,13 @@
         let waypoints = [];
         let markers = [];
         let polyline;
+        let distanceLabels = [];
         let isMapReady = false;
         let undoHistory = [];
         let redoHistory = [];
         let undoCount = 0;
         const MAX_HISTORY_SIZE = 20;
+        let showDistances = true;
 
         // Default coordinates for Rukla, Lithuania
         const DEFAULT_LATITUDE = 55.030180;
@@ -301,9 +304,12 @@
         }
 
         function enableButtons(enabled) {
-            const buttons = ['zoomInBtn', 'zoomOutBtn', 'resetBtn', 'invertBtn', 'undoBtn', 'redoBtn', 'pdfBtn'];
+            const buttons = ['zoomInBtn', 'zoomOutBtn', 'resetBtn', 'invertBtn', 'undoBtn', 'redoBtn', 'toggleDistancesBtn', 'pdfBtn'];
             buttons.forEach(btnId => {
-                document.getElementById(btnId).disabled = !enabled;
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.disabled = !enabled;
+                }
             });
         }
 
@@ -340,10 +346,66 @@
             return letters.charAt(Math.floor(Math.random() * letters.length));
         }
 
+        function calculateDistance(point1, point2) {
+            return google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+        }
+
+        function addDistanceLabels() {
+            for (let i = 0; i < waypoints.length - 1; i++) {
+                const point1 = waypoints[i].position;
+                const point2 = waypoints[i + 1].position;
+                const distance = calculateDistance(point1, point2);
+                
+                // Calculate midpoint for label position
+                const midLat = (point1.lat() + point2.lat()) / 2;
+                const midLng = (point1.lng() + point2.lng()) / 2;
+                
+                // Format distance (meters to appropriate unit)
+                let distanceText;
+                if (distance < 1000) {
+                    distanceText = Math.round(distance) + 'm';
+                } else {
+                    distanceText = (distance / 1000).toFixed(1) + 'km';
+                }
+                
+                // Create distance label
+                const label = new google.maps.Marker({
+                    position: { lat: midLat, lng: midLng },
+                    map: map,
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                            <svg width="60" height="30" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="60" height="30" fill="white" stroke="red" stroke-width="2" rx="5"/>
+                                <text x="30" y="20" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="red">${distanceText}</text>
+                            </svg>
+                        `),
+                        scaledSize: new google.maps.Size(60, 30),
+                        anchor: new google.maps.Point(30, 15)
+                    },
+                    zIndex: 1000
+                });
+                
+                distanceLabels.push(label);
+            }
+        }
+
+        function toggleDistances() {
+            showDistances = !showDistances;
+            updateConnections();
+            
+            const btn = document.getElementById('toggleDistancesBtn');
+            btn.textContent = showDistances ? 'Hide Distances' : 'Show Distances';
+            btn.style.background = showDistances ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
+        }
+
         function updateConnections() {
             if (polyline) {
                 polyline.setMap(null);
             }
+            
+            // Clear existing distance labels
+            distanceLabels.forEach(label => label.setMap(null));
+            distanceLabels = [];
             
             if (waypoints.length > 1) {
                 const path = waypoints.map(function(wp) { return wp.position; });
@@ -355,6 +417,11 @@
                     strokeWeight: 2
                 });
                 polyline.setMap(map);
+                
+                // Add distance labels if enabled
+                if (showDistances) {
+                    addDistanceLabels();
+                }
             }
         }
 
@@ -363,6 +430,11 @@
                 wp.marker.setMap(null);
             });
             if (polyline) polyline.setMap(null);
+            
+            // Clear distance labels
+            distanceLabels.forEach(label => label.setMap(null));
+            distanceLabels = [];
+            
             waypoints = [];
             clearHistory();
             console.log('All waypoints cleared');
