@@ -58,7 +58,7 @@ function initMap(): void {
         map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
             center: { lat: DEFAULT_LATITUDE, lng: DEFAULT_LONGITUDE },
             zoom: 13,
-            mapTypeId: google.maps.MapTypeId.SATELLITE,
+            mapTypeId: google.maps.MapTypeId.HYBRID,
             draggable: false,
             zoomControl: false,
             scrollwheel: false,
