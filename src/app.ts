@@ -517,14 +517,14 @@ function generatePDF(): void {
 
                     if (!wp1.isFinish) {
                         cellContent1.push({
-                            text: `Sekančio taško koordinatės: ${wp1.nextCoordinates}`,
+                            text: `Sekančio taško koordinatės:\n${wp1.nextCoordinates}`,
                             style: 'cellText',
                             alignment: 'center'
                         });
                     } else {
                         // Add the same line structure for finish point to match height
                         cellContent1.push({
-                            text: `Sekančio taško koordinatės: N/A`,
+                            text: `Sekančio taško koordinatės:\n N/A`,
                             style: 'cellText',
                             alignment: 'center',
                             color: 'white'
@@ -563,14 +563,14 @@ function generatePDF(): void {
 
                     if (!wp2.isFinish) {
                         cellContent2.push({
-                            text: `Sekančio taško koordinatės: ${wp2.nextCoordinates}`,
+                            text: `Sekančio taško koordinatės:\n ${wp2.nextCoordinates}`,
                             style: 'cellText',
                             alignment: 'center'
                         });
                     } else {
                         // Add the same line structure for finish point to match height
                         cellContent2.push({
-                            text: `Sekančio taško koordinatės: N/A`,
+                            text: `Sekančio taško koordinatės:\n N/A`,
                             style: 'cellText',
                             alignment: 'center',
                             color: 'white'
