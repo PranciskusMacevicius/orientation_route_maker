@@ -37,6 +37,8 @@ let showDistances: boolean = true;
 let userLocation: google.maps.LatLng | null = null;
 let userLocationMarker: google.maps.Marker | null = null;
 let isFirstLocation: boolean = true;
+let locationRetryInterval: number | null = null;
+let retryCount: number = 0;
 
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
@@ -813,6 +815,75 @@ function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'succe
     }
 }
 
+function showLocationStatus(message: string, type: 'info' | 'error' | 'warning' | 'success' = 'info'): void {
+    const statusEl = document.getElementById('status');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.className = `status-panel status-${type}`;
+        statusEl.style.display = 'flex';
+        statusEl.style.visibility = 'visible';
+        statusEl.style.opacity = '1';
+    }
+}
+
+function startLocationRetry(): void {
+    if (locationRetryInterval !== null) {
+        return; // Already retrying
+    }
+
+    retryCount = 0;
+    showLocationStatus('Retrying location...', 'warning');
+
+    locationRetryInterval = window.setInterval(() => {
+        retryCount++;
+        showLocationStatus(`Retrying location... (attempt ${retryCount})`, 'warning');
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                // Success! Stop retrying and start normal tracking
+                clearLocationRetry();
+                updateUserLocation(position);
+                showLocationStatus('Location tracking active', 'success');
+                startWatchPosition();
+            },
+            (error) => {
+                console.log('Retry attempt failed:', error);
+                // Continue retrying
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0 // Force fresh location
+            }
+        );
+    }, 5000); // Retry every 5 seconds
+}
+
+function clearLocationRetry(): void {
+    if (locationRetryInterval !== null) {
+        clearInterval(locationRetryInterval);
+        locationRetryInterval = null;
+        retryCount = 0;
+    }
+}
+
+function startWatchPosition(): void {
+    navigator.geolocation.watchPosition(
+        (position) => updateUserLocation(position),
+        (error) => {
+            console.log('Location watch error:', error);
+            showLocationStatus('Location updates unavailable', 'warning');
+            // Start retrying when watchPosition fails
+            startLocationRetry();
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 30000,
+            maximumAge: 60000
+        }
+    );
+}
+
 // GPS Location functions
 function startLocationTracking(): void {
     if (!navigator.geolocation) {
@@ -820,34 +891,27 @@ function startLocationTracking(): void {
         return;
     }
 
-    // Start location tracking silently
+    // Start location tracking with status updates
+    showLocationStatus('Getting location...', 'info');
 
     // Get initial location with more lenient settings
     navigator.geolocation.getCurrentPosition(
         (position) => {
             updateUserLocation(position);
+            showLocationStatus('Location tracking active', 'success');
             // Start watching location changes only after successful initial location
-            navigator.geolocation.watchPosition(
-                (position) => updateUserLocation(position),
-                (error) => {
-                    // Don't show error for watch position failures, just log them
-                    console.log('Location watch error:', error);
-                },
-                {
-                    enableHighAccuracy: false, // Less aggressive for background updates
-                    timeout: 30000,
-                    maximumAge: 60000 // Update every minute
-                }
-            );
+            startWatchPosition();
         },
         (error) => {
-            // Don't show error immediately, just log it
+            // Show user that initial location failed and start retrying
             console.log('Initial location request failed:', error);
+            showLocationStatus('Unable to get location', 'error');
+            startLocationRetry();
         },
         {
             enableHighAccuracy: true,
-            timeout: 15000, // Longer timeout
-            maximumAge: 300000 // Allow cached location up to 5 minutes
+            timeout: 30000, // Longer timeout
+            maximumAge: 60000 // Update every minute
         }
     );
 }
@@ -884,6 +948,8 @@ function updateUserLocation(position: GeolocationPosition): void {
         isFirstLocation = false;
     } else {
         console.log('Location updated:', lat, lng);
+        // Show that location tracking is working
+        showLocationStatus('Location tracking active', 'success');
     }
 
     console.log('User location:', lat, lng);
@@ -916,6 +982,7 @@ function centerOnUserLocation(): void {
         showStatus('Centered on your location', 'info');
     } else {
         showStatus('No location available. Requesting location...', 'info');
+        showLocationStatus('Getting location...', 'info');
         // Retry getting location
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -923,9 +990,13 @@ function centerOnUserLocation(): void {
                 map.setCenter(userLocation!);
                 map.setZoom(15);
                 showStatus('Centered on your location', 'success');
+                showLocationStatus('Location tracking active', 'success');
+                startWatchPosition();
             },
             (error) => {
                 handleLocationError(error);
+                showLocationStatus('Unable to get location', 'error');
+                startLocationRetry();
             },
             {
                 enableHighAccuracy: true,
@@ -940,7 +1011,7 @@ function centerOnDefaultLocation(): void {
     const defaultLocation = new google.maps.LatLng(DEFAULT_LATITUDE, DEFAULT_LONGITUDE);
     map.setCenter(defaultLocation);
     map.setZoom(13);
-    showStatus('Centered on default location (Rukla, Lithuania)', 'info');
+    showStatus('Centered on default location', 'info');
 }
 
 // Initialize buttons as disabled
