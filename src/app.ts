@@ -878,10 +878,8 @@ function updateUserLocation(position: GeolocationPosition): void {
         }
     });
 
-    // Center map on user location on first location
+    // Show location found message but don't center the map
     if (isFirstLocation) {
-        map.setCenter(userLocation);
-        map.setZoom(15);
         showStatus(`Location found: ${lat.toFixed(6)}, ${lng.toFixed(6)}`, 'success');
         isFirstLocation = false;
     } else {
