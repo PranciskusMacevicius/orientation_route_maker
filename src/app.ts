@@ -767,21 +767,19 @@ function convertToUTM(latitude: number, longitude: number): string {
         // Convert lat/lng to MGRS
         const mgrsString = mgrs.forward([longitude, latitude]);
 
-        // Format to match Legal Land Converter format: 35U LA 31065 99038
+        // Format to shortened MGRS: LB 3106 9903 (100km square + first 4 digits)
         // The mgrs library returns: 35ULA3106599038
-        // We need to add spaces: 35U LA 31065 99038
+        // We need: LB 3106 9903 (square + first 4 digits of each coordinate)
 
         if (mgrsString.length >= 15) {
-            // Extract zone+letter (first 3 chars)
-            const zoneLetter = mgrsString.substring(0, 3);
-            // Extract 100km square (next 2 chars)
+            // Extract 100km square (chars 3-5)
             const square = mgrsString.substring(3, 5);
-            // Extract easting (next 5 chars)
-            const easting = mgrsString.substring(5, 10);
-            // Extract northing (last 5 chars)
-            const northing = mgrsString.substring(10, 15);
+            // Extract first 4 digits of easting (chars 5-9)
+            const easting = mgrsString.substring(5, 9);
+            // Extract first 4 digits of northing (chars 10-14)
+            const northing = mgrsString.substring(10, 14);
 
-            return `${zoneLetter} ${square} ${easting} ${northing}`;
+            return `${square} ${easting} ${northing}`;
         }
 
         return mgrsString;
