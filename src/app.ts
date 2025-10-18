@@ -820,7 +820,7 @@ function startLocationTracking(): void {
         return;
     }
 
-    showStatus('Requesting location permission...', 'info');
+    // Start location tracking silently
 
     // Get initial location with more lenient settings
     navigator.geolocation.getCurrentPosition(
@@ -843,7 +843,6 @@ function startLocationTracking(): void {
         (error) => {
             // Don't show error immediately, just log it
             console.log('Initial location request failed:', error);
-            showStatus('Location not available. Click "Center on Me" to try again.', 'warning');
         },
         {
             enableHighAccuracy: true,
