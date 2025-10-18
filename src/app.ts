@@ -34,6 +34,9 @@ let redoHistory: WaypointData[] = [];
 let undoCount: number = 0;
 const MAX_HISTORY_SIZE: number = 20;
 let showDistances: boolean = true;
+let userLocation: google.maps.LatLng | null = null;
+let userLocationMarker: google.maps.Marker | null = null;
+let isFirstLocation: boolean = true;
 
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
@@ -151,10 +154,13 @@ function onMapReady(): void {
 
     // Enable all buttons
     enableButtons(true);
+
+    // Start automatic location tracking
+    startLocationTracking();
 }
 
 function enableButtons(enabled: boolean): void {
-    const buttons = ['zoomInBtn', 'zoomOutBtn', 'resetBtn', 'invertBtn', 'undoBtn', 'redoBtn', 'toggleDistancesBtn', 'pdfBtn'];
+    const buttons = ['zoomInBtn', 'zoomOutBtn', 'resetBtn', 'invertBtn', 'undoBtn', 'redoBtn', 'toggleDistancesBtn', 'pdfBtn', 'centerUserBtn', 'centerDefaultBtn'];
     buttons.forEach(btnId => {
         const btn = document.getElementById(btnId);
         if (btn) {
@@ -807,6 +813,139 @@ function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'succe
     }
 }
 
+// GPS Location functions
+function startLocationTracking(): void {
+    if (!navigator.geolocation) {
+        showStatus('Geolocation is not supported by this browser.', 'error');
+        return;
+    }
+
+    showStatus('Requesting location permission...', 'info');
+
+    // Get initial location with more lenient settings
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            updateUserLocation(position);
+            // Start watching location changes only after successful initial location
+            navigator.geolocation.watchPosition(
+                (position) => updateUserLocation(position),
+                (error) => {
+                    // Don't show error for watch position failures, just log them
+                    console.log('Location watch error:', error);
+                },
+                {
+                    enableHighAccuracy: false, // Less aggressive for background updates
+                    timeout: 30000,
+                    maximumAge: 60000 // Update every minute
+                }
+            );
+        },
+        (error) => {
+            // Don't show error immediately, just log it
+            console.log('Initial location request failed:', error);
+            showStatus('Location not available. Click "Center on Me" to try again.', 'warning');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000, // Longer timeout
+            maximumAge: 300000 // Allow cached location up to 5 minutes
+        }
+    );
+}
+
+function updateUserLocation(position: GeolocationPosition): void {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    userLocation = new google.maps.LatLng(lat, lng);
+
+    // Create or update user location marker
+    if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+    }
+
+    userLocationMarker = new google.maps.Marker({
+        position: userLocation,
+        map: map,
+        title: 'Your Location',
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#4285F4" stroke="#FFFFFF" stroke-width="2"/>
+                    <circle cx="12" cy="12" r="4" fill="#FFFFFF"/>
+                </svg>
+            `),
+            scaledSize: new google.maps.Size(24, 24),
+            anchor: new google.maps.Point(12, 12)
+        }
+    });
+
+    // Center map on user location on first location
+    if (isFirstLocation) {
+        map.setCenter(userLocation);
+        map.setZoom(15);
+        showStatus(`Location found: ${lat.toFixed(6)}, ${lng.toFixed(6)}`, 'success');
+        isFirstLocation = false;
+    } else {
+        console.log('Location updated:', lat, lng);
+    }
+
+    console.log('User location:', lat, lng);
+}
+
+function handleLocationError(error: GeolocationPositionError): void {
+    let errorMessage = '';
+    switch (error.code) {
+        case error.PERMISSION_DENIED:
+            errorMessage = 'Location permission denied. Please allow location access in your browser settings and try again.';
+            break;
+        case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information unavailable. Please check your GPS/network connection.';
+            break;
+        case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Please try again.';
+            break;
+        default:
+            errorMessage = 'Unable to get location. Please try again.';
+            break;
+    }
+    showStatus(errorMessage, 'error');
+    console.error('Geolocation error:', error);
+}
+
+function centerOnUserLocation(): void {
+    if (userLocation) {
+        map.setCenter(userLocation);
+        map.setZoom(15);
+        showStatus('Centered on your location', 'info');
+    } else {
+        showStatus('No location available. Requesting location...', 'info');
+        // Retry getting location
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                updateUserLocation(position);
+                map.setCenter(userLocation!);
+                map.setZoom(15);
+                showStatus('Centered on your location', 'success');
+            },
+            (error) => {
+                handleLocationError(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    }
+}
+
+function centerOnDefaultLocation(): void {
+    const defaultLocation = new google.maps.LatLng(DEFAULT_LATITUDE, DEFAULT_LONGITUDE);
+    map.setCenter(defaultLocation);
+    map.setZoom(13);
+    showStatus('Centered on default location (Rukla, Lithuania)', 'info');
+}
+
 // Initialize buttons as disabled
 document.addEventListener('DOMContentLoaded', function () {
     enableButtons(false);
@@ -816,6 +955,8 @@ document.addEventListener('DOMContentLoaded', function () {
 (window as any).initMap = initMap;
 (window as any).clearWaypoints = clearWaypoints;
 (window as any).invertRoute = invertRoute;
+(window as any).centerOnUserLocation = centerOnUserLocation;
+(window as any).centerOnDefaultLocation = centerOnDefaultLocation;
 (window as any).undo = undo;
 (window as any).redo = redo;
 (window as any).generatePDF = generatePDF;
