@@ -843,7 +843,8 @@ function startLocationRetry(): void {
                 // Success! Stop retrying and start normal tracking
                 clearLocationRetry();
                 updateUserLocation(position);
-                showLocationStatus('Location tracking active', 'success');
+                const accuracy = position.coords.accuracy;
+                showLocationStatus(`Location tracking active (±${Math.round(accuracy)}m)`, 'success');
                 startWatchPosition();
             },
             (error) => {
@@ -948,8 +949,9 @@ function updateUserLocation(position: GeolocationPosition): void {
         isFirstLocation = false;
     } else {
         console.log('Location updated:', lat, lng);
-        // Show that location tracking is working
-        showLocationStatus('Location tracking active', 'success');
+        // Show that location tracking is working with accuracy
+        const accuracy = position.coords.accuracy;
+        showLocationStatus(`Location tracking active (accuracy: ${Math.round(accuracy)}m)`, 'success');
     }
 
     console.log('User location:', lat, lng);
@@ -990,7 +992,8 @@ function centerOnUserLocation(): void {
                 map.setCenter(userLocation!);
                 map.setZoom(15);
                 showStatus('Centered on your location', 'success');
-                showLocationStatus('Location tracking active', 'success');
+                const accuracy = position.coords.accuracy;
+                showLocationStatus(`Location tracking active (accuracy: ${Math.round(accuracy)}m)`, 'success');
                 startWatchPosition();
             },
             (error) => {
