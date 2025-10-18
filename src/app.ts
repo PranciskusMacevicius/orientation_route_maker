@@ -832,11 +832,11 @@ function startLocationRetry(): void {
     }
 
     retryCount = 0;
-    showLocationStatus('Retrying location...', 'warning');
+    showLocationStatus('Retrying To Get Location...', 'warning');
 
     locationRetryInterval = window.setInterval(() => {
         retryCount++;
-        showLocationStatus(`Retrying location... (attempt ${retryCount})`, 'warning');
+        showLocationStatus(`Retrying To Get Location... (Attempt: ${retryCount})`, 'warning');
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -844,7 +844,7 @@ function startLocationRetry(): void {
                 clearLocationRetry();
                 updateUserLocation(position);
                 const accuracy = position.coords.accuracy;
-                showLocationStatus(`Location tracking active (±${Math.round(accuracy)}m)`, 'success');
+                showLocationStatus(`Location Tracking Active (Accuracy: ${Math.round(accuracy)}m)`, 'success');
                 startWatchPosition();
             },
             (error) => {
@@ -893,20 +893,20 @@ function startLocationTracking(): void {
     }
 
     // Start location tracking with status updates
-    showLocationStatus('Getting location...', 'info');
+    showLocationStatus('Getting Location...', 'info');
 
     // Get initial location with more lenient settings
     navigator.geolocation.getCurrentPosition(
         (position) => {
             updateUserLocation(position);
-            showLocationStatus('Location tracking active', 'success');
+            showLocationStatus('Location Tracking Active', 'success');
             // Start watching location changes only after successful initial location
             startWatchPosition();
         },
         (error) => {
             // Show user that initial location failed and start retrying
             console.log('Initial location request failed:', error);
-            showLocationStatus('Unable to get location', 'error');
+            showLocationStatus('Unable To Get Location', 'error');
             startLocationRetry();
         },
         {
@@ -984,7 +984,7 @@ function centerOnUserLocation(): void {
         showStatus('Centered on your location', 'info');
     } else {
         showStatus('No location available. Requesting location...', 'info');
-        showLocationStatus('Getting location...', 'info');
+        showLocationStatus('Getting Location...', 'info');
         // Retry getting location
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -998,7 +998,7 @@ function centerOnUserLocation(): void {
             },
             (error) => {
                 handleLocationError(error);
-                showLocationStatus('Unable to get location', 'error');
+                showLocationStatus('Unable To Get Location', 'error');
                 startLocationRetry();
             },
             {
