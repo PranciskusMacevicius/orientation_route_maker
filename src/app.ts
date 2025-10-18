@@ -1,3 +1,6 @@
+// Import mgrs library for MGRS conversion
+const mgrs = require('mgrs');
+
 // Global types
 interface Waypoint {
     position: google.maps.LatLng;
@@ -24,11 +27,9 @@ interface PDFWaypointData {
 // Global variables
 let map: google.maps.Map;
 let waypoints: Waypoint[] = [];
-let markers: google.maps.Marker[] = [];
 let polyline: google.maps.Polyline | null = null;
 let distanceLabels: google.maps.Marker[] = [];
 let isMapReady: boolean = false;
-let undoHistory: WaypointData[] = [];
 let redoHistory: WaypointData[] = [];
 let undoCount: number = 0;
 const MAX_HISTORY_SIZE: number = 20;
@@ -45,12 +46,12 @@ function initMap(): void {
     try {
         mapInitAttempts++;
         console.log('Initializing Google Maps... (attempt ' + mapInitAttempts + ')');
-        
+
         // Check if Google Maps is available
         if (typeof google === 'undefined' || !google.maps) {
             throw new Error('Google Maps API not loaded');
         }
-        
+
         map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
             center: { lat: DEFAULT_LATITUDE, lng: DEFAULT_LONGITUDE },
             zoom: 13,
@@ -63,7 +64,7 @@ function initMap(): void {
         });
 
         // Add click listener for waypoints
-        map.addListener('click', function(event: google.maps.MapMouseEvent) {
+        map.addListener('click', function (event: google.maps.MapMouseEvent) {
             if (!isMapReady) {
                 console.log('Map not ready - click ignored');
                 return;
@@ -74,7 +75,7 @@ function initMap(): void {
         });
 
         // Add mouse move listener for coordinate display
-        map.addListener('mousemove', function(event: google.maps.MapMouseEvent) {
+        map.addListener('mousemove', function (event: google.maps.MapMouseEvent) {
             if (event.latLng) {
                 const lat = event.latLng.lat();
                 const lng = event.latLng.lng();
@@ -87,14 +88,14 @@ function initMap(): void {
         });
 
         // Add idle listener to ensure map is fully loaded
-        map.addListener('idle', function() {
+        map.addListener('idle', function () {
             console.log('Google Maps fully loaded and ready');
             isMapReady = true;
             onMapReady();
         });
 
         console.log('Google Maps initialized successfully');
-        
+
     } catch (error) {
         console.error('Error initializing Google Maps:', error);
         console.log('Retrying map initialization in 2 seconds...');
@@ -104,8 +105,8 @@ function initMap(): void {
 }
 
 // Add timeout for map loading with infinite retry
-window.addEventListener('load', function() {
-    setTimeout(function() {
+window.addEventListener('load', function () {
+    setTimeout(function () {
         if (!isMapReady) {
             console.log('Map loading timeout - retrying...');
             showStatus('Google Maps is taking longer than expected. Retrying...', 'warning');
@@ -115,7 +116,7 @@ window.addEventListener('load', function() {
 });
 
 // Fallback initialization if Google Maps doesn't load
-setTimeout(function() {
+setTimeout(function () {
     if (!isMapReady && mapInitAttempts === 0) {
         console.log('Google Maps callback not called - attempting manual initialization');
         if (typeof google !== 'undefined' && google.maps) {
@@ -132,7 +133,7 @@ setTimeout(function() {
 
 function onMapReady(): void {
     console.log('Map is ready for interaction!');
-    
+
     // Enable map interactions
     map.setOptions({
         draggable: true,
@@ -141,13 +142,13 @@ function onMapReady(): void {
         disableDoubleClickZoom: false,
         clickableIcons: true
     });
-    
+
     // Hide loading message
     const loading = document.getElementById('loading');
     if (loading) {
         loading.style.display = 'none';
     }
-    
+
     // Enable all buttons
     enableButtons(true);
 }
@@ -164,7 +165,7 @@ function enableButtons(enabled: boolean): void {
 
 function addWaypoint(latLng: google.maps.LatLng): void {
     const pointNumber = waypoints.length === 0 ? 'S' : 'F';
-    
+
     // Update previous waypoint number if it's not the first
     if (waypoints.length > 1) {
         waypoints[waypoints.length - 1].number = (waypoints.length - 1).toString();
@@ -204,11 +205,11 @@ function addDistanceLabels(): void {
         const point1 = waypoints[i].position;
         const point2 = waypoints[i + 1].position;
         const distance = calculateDistance(point1, point2);
-        
+
         // Calculate midpoint for label position
         const midLat = (point1.lat() + point2.lat()) / 2;
         const midLng = (point1.lng() + point2.lng()) / 2;
-        
+
         // Format distance (meters to appropriate unit)
         let distanceText: string;
         if (distance < 1000) {
@@ -216,7 +217,7 @@ function addDistanceLabels(): void {
         } else {
             distanceText = (distance / 1000).toFixed(1) + 'km';
         }
-        
+
         // Create distance label
         const label = new google.maps.Marker({
             position: { lat: midLat, lng: midLng },
@@ -233,7 +234,7 @@ function addDistanceLabels(): void {
             },
             zIndex: 1000
         });
-        
+
         distanceLabels.push(label);
     }
 }
@@ -241,7 +242,7 @@ function addDistanceLabels(): void {
 function toggleDistances(): void {
     showDistances = !showDistances;
     updateConnections();
-    
+
     const btn = document.getElementById('toggleDistancesBtn');
     if (btn) {
         btn.textContent = showDistances ? 'Hide Distances' : 'Show Distances';
@@ -253,13 +254,13 @@ function updateConnections(): void {
     if (polyline) {
         polyline.setMap(null);
     }
-    
+
     // Clear existing distance labels
     distanceLabels.forEach(label => label.setMap(null));
     distanceLabels = [];
-    
+
     if (waypoints.length > 1) {
-        const path = waypoints.map(function(wp) { return wp.position; });
+        const path = waypoints.map(function (wp) { return wp.position; });
         polyline = new google.maps.Polyline({
             path: path,
             geodesic: true,
@@ -268,7 +269,7 @@ function updateConnections(): void {
             strokeWeight: 2
         });
         polyline.setMap(map);
-        
+
         // Add distance labels if enabled
         if (showDistances) {
             addDistanceLabels();
@@ -277,15 +278,15 @@ function updateConnections(): void {
 }
 
 function clearWaypoints(): void {
-    waypoints.forEach(function(wp) {
+    waypoints.forEach(function (wp) {
         wp.marker.setMap(null);
     });
     if (polyline) polyline.setMap(null);
-    
+
     // Clear distance labels
     distanceLabels.forEach(label => label.setMap(null));
     distanceLabels = [];
-    
+
     waypoints = [];
     clearHistory();
     console.log('All waypoints cleared');
@@ -293,7 +294,7 @@ function clearWaypoints(): void {
 
 function invertRoute(): void {
     if (waypoints.length < 2) return;
-    
+
     waypoints.reverse();
     for (let i = 0; i < waypoints.length; i++) {
         if (i === 0) {
@@ -313,28 +314,28 @@ function invertRoute(): void {
 
 function undo(): void {
     console.log('Undo method called, undoCount:', undoCount);
-    
+
     if (undoCount >= MAX_HISTORY_SIZE) {
         console.log('Undo limit reached (20 operations)');
         showStatus('Undo limit reached (20 operations)', 'warning');
         return;
     }
-    
+
     if (waypoints.length > 0) {
         const lastWaypoint = waypoints[waypoints.length - 1];
         console.log('Removing waypoint:', lastWaypoint.number);
-        
+
         // Store for redo
         redoHistory.push({
             position: lastWaypoint.position,
             number: lastWaypoint.number,
             letter: lastWaypoint.letter
         });
-        
+
         lastWaypoint.marker.setMap(null);
         waypoints.pop();
         updateConnections();
-        
+
         // Update waypoint numbers
         for (let i = 0; i < waypoints.length; i++) {
             if (i === 0) {
@@ -348,7 +349,7 @@ function undo(): void {
                 waypoints[i].marker.setLabel(i.toString());
             }
         }
-        
+
         undoCount++;
         console.log('Waypoint removed, new length:', waypoints.length, 'undo count:', undoCount);
     } else {
@@ -372,7 +373,7 @@ function redo(): void {
                 letter: waypointData.letter,
                 marker: marker
             });
-            
+
             // Update waypoint numbering after adding back
             updateWaypointNumbering();
             updateConnections();
@@ -386,7 +387,7 @@ function redo(): void {
 
 function updateWaypointNumbering(): void {
     if (waypoints.length === 0) return;
-    
+
     for (let i = 0; i < waypoints.length; i++) {
         const wp = waypoints[i];
         if (i === 0) {
@@ -401,7 +402,6 @@ function updateWaypointNumbering(): void {
 }
 
 function clearHistory(): void {
-    undoHistory = [];
     redoHistory = [];
     undoCount = 0;
     console.log('History cleared, undo count reset to 0');
@@ -412,7 +412,7 @@ function generatePDF(): void {
         showStatus('No waypoints to generate PDF. Please add some points to the map first.', 'warning');
         return;
     }
-    
+
     try {
         // Check if pdfmake is available, fallback to jsPDF
         if (typeof (window as any).pdfMake === 'undefined') {
@@ -420,21 +420,21 @@ function generatePDF(): void {
             generatePDFWithJsPDF();
             return;
         }
-        
+
         // Update next point coordinates for each waypoint
         for (let i = 0; i < waypoints.length; i++) {
             if (i < waypoints.length - 1) {
                 waypoints[i].nextPoint = waypoints[i + 1];
             }
         }
-        
+
         // Create waypoint data for PDF
         const waypointData: PDFWaypointData[] = waypoints.map((wp, index) => {
             const isFinish = wp.number === 'F';
-            const nextPointCoords = index < waypoints.length - 1 ? 
-                convertToUTM(waypoints[index + 1].position.lat(), waypoints[index + 1].position.lng()) : 
+            const nextPointCoords = index < waypoints.length - 1 ?
+                convertToUTM(waypoints[index + 1].position.lat(), waypoints[index + 1].position.lng()) :
                 'N/A';
-            
+
             return {
                 number: wp.number === 'S' ? 'Startas' : wp.number === 'F' ? 'Finišas' : wp.number,
                 coordinates: convertToUTM(wp.position.lat(), wp.position.lng()),
@@ -443,7 +443,7 @@ function generatePDF(): void {
                 isFinish: isFinish
             };
         });
-        
+
         // Create PDF document definition
         const docDefinition = {
             pageSize: 'A4',
@@ -467,46 +467,46 @@ function generatePDF(): void {
                 }
             }
         };
-        
+
         // Create grid layout (2x4 = 8 waypoints per page with larger cells)
         const POINTS_PER_PAGE = 12;
         const totalPages = Math.ceil(waypointData.length / POINTS_PER_PAGE);
-        
+
         for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
             const startIndex = pageIndex * POINTS_PER_PAGE;
             const endIndex = Math.min(startIndex + POINTS_PER_PAGE, waypointData.length);
             const pageWaypoints = waypointData.slice(startIndex, endIndex);
-            
+
             // Create table for this page
             const tableBody: any[] = [];
-            
+
             // Create rows only for existing waypoints (2 per row)
             for (let i = 0; i < pageWaypoints.length; i += 2) {
                 const tableRow: any[] = [];
-                
+
                 // Add first waypoint in row
                 const wp1 = pageWaypoints[i];
                 if (wp1) {
                     const cellContent1: any[] = [];
-                    
+
                     cellContent1.push({
                         text: `Taškas: ${wp1.number}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     cellContent1.push({
                         text: `Koordinatės: ${wp1.coordinates}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     cellContent1.push({
                         text: `Raidė: ${wp1.letter}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     if (!wp1.isFinish) {
                         cellContent1.push({
                             text: `Sekančio taško koordinatės: ${wp1.nextCoordinates}`,
@@ -522,37 +522,37 @@ function generatePDF(): void {
                             color: 'white'
                         });
                     }
-                    
+
                     tableRow.push({
                         stack: cellContent1,
                         border: [true, true, true, true],
                         fillColor: '#ffffff'
                     });
                 }
-                
+
                 // Add second waypoint in row (if exists)
                 const wp2 = pageWaypoints[i + 1];
                 if (wp2) {
                     const cellContent2: any[] = [];
-                    
+
                     cellContent2.push({
                         text: `Taškas: ${wp2.number}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     cellContent2.push({
                         text: `Koordinatės: ${wp2.coordinates}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     cellContent2.push({
                         text: `Raidė: ${wp2.letter}`,
                         style: 'cellText',
                         alignment: 'center'
                     });
-                    
+
                     if (!wp2.isFinish) {
                         cellContent2.push({
                             text: `Sekančio taško koordinatės: ${wp2.nextCoordinates}`,
@@ -568,7 +568,7 @@ function generatePDF(): void {
                             color: 'white'
                         });
                     }
-                    
+
                     tableRow.push({
                         stack: cellContent2,
                         border: [true, true, true, true],
@@ -582,16 +582,16 @@ function generatePDF(): void {
                         fillColor: '#ffffff'
                     });
                 }
-                
+
                 // Always add row to maintain consistent table structure
                 tableBody.push(tableRow);
             }
-            
+
             // Add table to document
             if (pageIndex > 0) {
                 docDefinition.content.push({ text: '', pageBreak: 'before' });
             }
-            
+
             docDefinition.content.push({
                 table: {
                     headerRows: 0,
@@ -614,23 +614,23 @@ function generatePDF(): void {
                 }
             });
         }
-        
+
         // Generate filename with timestamp (local time)
         const now = new Date();
-        const timestamp = now.getFullYear().toString() + 
-            (now.getMonth() + 1).toString().padStart(2, '0') + 
+        const timestamp = now.getFullYear().toString() +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
             now.getDate().toString().padStart(2, '0') + '_' +
-            now.getHours().toString().padStart(2, '0') + 
-            now.getMinutes().toString().padStart(2, '0') + 
+            now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
             now.getSeconds().toString().padStart(2, '0');
         const fileName = `orientation_${timestamp}.pdf`;
-        
+
         // Generate and download PDF
         (window as any).pdfMake.createPdf(docDefinition).download(fileName);
-        
+
         showStatus(`PDF saved as ${fileName}`, 'success');
         console.log('PDF generated successfully with pdfmake');
-        
+
     } catch (error) {
         console.error('Error generating PDF:', error);
         showStatus('Error generating PDF: ' + (error as Error).message, 'error');
@@ -647,74 +647,74 @@ function generatePDFWithJsPDF(): void {
 
         const { jsPDF } = (window as any).jspdf;
         const doc = new jsPDF();
-        
+
         // Update next point coordinates for each waypoint
         for (let i = 0; i < waypoints.length; i++) {
             if (i < waypoints.length - 1) {
                 waypoints[i].nextPoint = waypoints[i + 1];
             }
         }
-        
+
         const POINTS_PER_PAGE = 8; // 2x4 grid
         const totalPages = Math.ceil(waypoints.length / POINTS_PER_PAGE);
-        
+
         for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
             if (pageIndex > 0) {
                 doc.addPage();
             }
-            
+
             const startIndex = pageIndex * POINTS_PER_PAGE;
             const endIndex = Math.min(startIndex + POINTS_PER_PAGE, waypoints.length);
             const actualWaypoints = endIndex - startIndex;
-            
+
             // Grid dimensions
             const cols = 2;
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const cellWidth = pageWidth / cols;
             const cellHeight = pageHeight / 2; // Double the height - use only 2 rows worth of space
-            
+
             // Debug output
             console.log('PDF Debug - Page:', pageWidth, 'x', pageHeight);
             console.log('PDF Debug - Cell:', cellWidth, 'x', cellHeight);
             console.log('PDF Debug - Grid: 2x4, but using 2 physical rows');
-            
+
             // Draw borders
             doc.setLineWidth(2);
             for (let i = 0; i < actualWaypoints; i++) {
                 const logicalRow = Math.floor(i / cols);
                 const col = i % cols;
-                
+
                 // Map 4 logical rows to 2 physical rows
                 const physicalRow = Math.floor(logicalRow / 2);
-                
+
                 const cellX = col * cellWidth;
                 const cellY = physicalRow * cellHeight;
-                
+
                 // Draw cell border
                 doc.rect(cellX, cellY, cellWidth, cellHeight);
             }
-            
+
             // Draw internal lines and add text
             doc.setLineWidth(0.5);
             for (let i = 0; i < actualWaypoints; i++) {
                 const wp = waypoints[startIndex + i];
                 const logicalRow = Math.floor(i / cols);
                 const col = i % cols;
-                
+
                 // Map 4 logical rows to 2 physical rows
                 const physicalRow = Math.floor(logicalRow / 2);
-                
+
                 const cellX = col * cellWidth;
                 const cellY = physicalRow * cellHeight;
                 const tableRowHeight = cellHeight / 4;
-                
+
                 // Draw internal lines
                 for (let tableRow = 1; tableRow < 4; tableRow++) {
                     const y = cellY + tableRow * tableRowHeight;
                     doc.line(cellX, y, cellX + cellWidth, y);
                 }
-                
+
                 // Add text content
                 const isFinish = wp.number === 'F';
                 const texts = isFinish ? [
@@ -727,7 +727,7 @@ function generatePDFWithJsPDF(): void {
                     `Raidė: ${wp.letter}`,
                     `Sekančio taško koordinatės: ${i < waypoints.length - 1 ? convertToUTM(waypoints[startIndex + i + 1].position.lat(), waypoints[startIndex + i + 1].position.lng()) : 'N/A'}`
                 ];
-                
+
                 // Draw text
                 doc.setFontSize(12);
                 for (let textRow = 0; textRow < texts.length; textRow++) {
@@ -738,101 +738,71 @@ function generatePDFWithJsPDF(): void {
                 }
             }
         }
-        
+
         // Generate filename with timestamp (local time)
         const now = new Date();
-        const timestamp = now.getFullYear().toString() + 
-            (now.getMonth() + 1).toString().padStart(2, '0') + 
+        const timestamp = now.getFullYear().toString() +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
             now.getDate().toString().padStart(2, '0') + '_' +
-            now.getHours().toString().padStart(2, '0') + 
-            now.getMinutes().toString().padStart(2, '0') + 
+            now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
             now.getSeconds().toString().padStart(2, '0');
         const fileName = `orientation_${timestamp}.pdf`;
-        
+
         // Save the PDF
         doc.save(fileName);
-        
+
         showStatus(`PDF saved as ${fileName} (using jsPDF)`, 'success');
         console.log('PDF generated successfully with jsPDF fallback');
-        
+
     } catch (error) {
         console.error('Error generating PDF with jsPDF:', error);
         showStatus('Error generating PDF: ' + (error as Error).message, 'error');
     }
 }
 
-// UTM coordinate conversion (simplified implementation)
+// MGRS coordinate conversion using mgrs library
 function convertToUTM(latitude: number, longitude: number): string {
-    // Calculate the correct UTM zone
-    const zone = Math.floor((longitude + 180) / 6) + 1;
-    
-    const utm = convertWGS84ToUTM(latitude, longitude, zone);
-    const easting = utm[0];
-    const northing = utm[1];
+    try {
+        // Convert lat/lng to MGRS
+        const mgrsString = mgrs.forward([longitude, latitude]);
 
-    // Get digits 2-5 from the right for easting
-    const eastingDigits = Math.abs(Math.floor(easting)) % 100000;
-    const eastingLast4 = Math.floor(eastingDigits / 10) % 10000;
-    
-    // Get digits 2-5 from the right for northing
-    const northingDigits = Math.abs(Math.floor(northing)) % 100000;
-    const northingLast4 = Math.floor(northingDigits / 10) % 10000;
+        // Format to match Legal Land Converter format: 35U LA 31065 99038
+        // The mgrs library returns: 35ULA3106599038
+        // We need to add spaces: 35U LA 31065 99038
 
-    return `${eastingLast4.toString().padStart(4, '0')} ${northingLast4.toString().padStart(4, '0')}`;
+        if (mgrsString.length >= 15) {
+            // Extract zone+letter (first 3 chars)
+            const zoneLetter = mgrsString.substring(0, 3);
+            // Extract 100km square (next 2 chars)
+            const square = mgrsString.substring(3, 5);
+            // Extract easting (next 5 chars)
+            const easting = mgrsString.substring(5, 10);
+            // Extract northing (last 5 chars)
+            const northing = mgrsString.substring(10, 15);
+
+            return `${zoneLetter} ${square} ${easting} ${northing}`;
+        }
+
+        return mgrsString;
+    } catch (error) {
+        console.error('MGRS conversion error:', error);
+        // Fallback to simple format if library fails
+        return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    }
 }
 
-function convertWGS84ToUTM(latitude: number, longitude: number, zone: number): [number, number] {
-    // WGS84 ellipsoid parameters
-    const a = 6378137.0;              // Semi-major axis (meters)
-    const e = 0.0818191908;           // First eccentricity
-    const e1sq = 0.006739497;         // e1 squared
-    
-    // UTM parameters
-    const k0 = 0.9996;                // Scale factor
-    const E0 = 500000.0;              // False easting
-    const N0 = 0.0;                   // False northing (Northern hemisphere)
-    
-    // Convert to radians
-    const lat = latitude * Math.PI / 180;
-    const lon = longitude * Math.PI / 180;
-    const lon0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180; // Central meridian
-    
-    const dLon = lon - lon0;
-    
-    // Calculate M (meridional arc)
-    const M = a * ((1 - Math.pow(e, 2) / 4 - 3 * Math.pow(e, 4) / 64 - 5 * Math.pow(e, 6) / 256) * lat
-            - (3 * Math.pow(e, 2) / 8 + 3 * Math.pow(e, 4) / 32 + 45 * Math.pow(e, 6) / 1024) * Math.sin(2 * lat)
-            + (15 * Math.pow(e, 4) / 256 + 45 * Math.pow(e, 6) / 1024) * Math.sin(4 * lat)
-            - (35 * Math.pow(e, 6) / 3072) * Math.sin(6 * lat));
-    
-    // Calculate other parameters
-    const nu = a / Math.sqrt(1 - Math.pow(e * Math.sin(lat), 2));
-    const T = Math.pow(Math.tan(lat), 2);
-    const C = e1sq * Math.pow(Math.cos(lat), 2);
-    const A_coeff = dLon * Math.cos(lat);
-    
-    // Calculate easting
-    const easting = k0 * nu * (A_coeff + (1 - T + C) * Math.pow(A_coeff, 3) / 6
-            + (5 - 18 * T + Math.pow(T, 2) + 72 * C - 58 * e1sq) * Math.pow(A_coeff, 5) / 120) + E0;
-    
-    // Calculate northing
-    const northing = k0 * (M + nu * Math.tan(lat) * (Math.pow(A_coeff, 2) / 2
-            + (5 - T + 9 * C + 4 * Math.pow(C, 2)) * Math.pow(A_coeff, 4) / 24
-            + (61 - 58 * T + Math.pow(T, 2) + 600 * C - 330 * e1sq) * Math.pow(A_coeff, 6) / 720)) + N0;
-    
-    return [easting, northing];
-}
 
 function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'success' = 'info'): void {
     const statusEl = document.getElementById('statusMessage');
     if (statusEl) {
         statusEl.textContent = message;
         statusEl.style.display = 'block';
-        statusEl.style.background = type === 'error' ? 'rgba(220, 53, 69, 0.9)' : 
-                                   type === 'warning' ? 'rgba(255, 193, 7, 0.9)' : 
-                                   type === 'success' ? 'rgba(40, 167, 69, 0.9)' : 
-                                   'rgba(0, 0, 0, 0.8)';
-        
+        statusEl.style.background = type === 'error' ? 'rgba(220, 53, 69, 0.9)' :
+            type === 'warning' ? 'rgba(255, 193, 7, 0.9)' :
+                type === 'success' ? 'rgba(40, 167, 69, 0.9)' :
+                    'rgba(0, 0, 0, 0.8)';
+
         setTimeout(() => {
             statusEl.style.display = 'none';
         }, 3000);
@@ -840,7 +810,7 @@ function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'succe
 }
 
 // Initialize buttons as disabled
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     enableButtons(false);
 });
 
