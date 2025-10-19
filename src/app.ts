@@ -1045,6 +1045,11 @@ function setupMobileFeatures(): void {
     // Detect if we're on mobile
     isMobile = window.innerWidth <= 768;
 
+    // TEMPORARY: Force mobile mode for testing (remove this line when done)
+    // isMobile = true;
+
+    console.log('Mobile detection - window width:', window.innerWidth, 'isMobile:', isMobile);
+
     if (isMobile) {
         console.log('Mobile features enabled');
 
@@ -1058,6 +1063,8 @@ function setupMobileFeatures(): void {
 
         // Set up center coordinate tracking
         setupMobileCenterTracking();
+    } else {
+        console.log('Desktop mode - mobile features disabled');
     }
 }
 
@@ -1088,14 +1095,28 @@ function updateMobileCenterCoords(): void {
 }
 
 function addMobileWaypoint(): void {
-    if (!isMobile) return;
+    console.log('addMobileWaypoint called, isMobile:', isMobile);
+
+    if (!isMobile) {
+        console.log('Not on mobile, skipping');
+        return;
+    }
 
     const center = map.getCenter();
+    console.log('Map center:', center);
+
     if (center) {
+        console.log('Adding waypoint at center:', center.lat(), center.lng());
         addWaypoint(center);
-        showStatus('Waypoint added at crosshair center', 'success');
+        // No success message for mobile - silent addition
+    } else {
+        console.log('No map center available');
+        showStatus('Unable to get map center', 'error');
     }
 }
+
+// Make function globally accessible
+(window as any).addMobileWaypoint = addMobileWaypoint;
 
 // Initialize buttons as disabled
 document.addEventListener('DOMContentLoaded', function () {

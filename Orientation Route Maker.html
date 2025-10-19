@@ -123,10 +123,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
-            border: 2px solid #ff0000;
-            border-radius: 50%;
+            width: 20px;
+            height: 20px;
             z-index: 1001;
             pointer-events: none;
             display: none;
@@ -138,9 +136,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 2px;
+            width: 1px;
             height: 20px;
             background: #ff0000;
+            opacity: 1;
         }
 
         .mobile-crosshair::after {
@@ -150,16 +149,17 @@
             left: 50%;
             transform: translate(-50%, -50%);
             width: 20px;
-            height: 2px;
+            height: 1px;
             background: #ff0000;
+            opacity: 1;
         }
 
         /* Mobile-only center coordinates */
         .mobile-center-coords {
             position: absolute;
-            top: 50%;
+            bottom: 20px; /* Increased space from panel */
             left: 50%;
-            transform: translate(-50%, calc(-50% - 40px));
+            transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.9);
             color: black;
             padding: 6px 10px;
@@ -172,30 +172,9 @@
             white-space: nowrap;
         }
 
-        /* Mobile-only add point button */
-        .mobile-add-point {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, calc(-50% + 40px));
-            background: #4285F4;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 1003;
+        /* Mobile-only button styling */
+        .mobile-only {
             display: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            touch-action: manipulation;
-        }
-
-        .mobile-add-point:hover {
-            background: #3367D6;
-            transform: translate(-50%, calc(-50% + 40px)) scale(1.1);
         }
 
         .status-message {
@@ -276,10 +255,18 @@
                 gap: 8px;
             }
 
+            /* Hide desktop coordinates on mobile */
+            .coordinate-display {
+                display: none;
+            }
+            
             /* Show mobile-only elements */
             .mobile-crosshair,
-            .mobile-center-coords,
-            .mobile-add-point {
+            .mobile-center-coords {
+                display: block;
+            }
+            
+            .mobile-only {
                 display: block;
             }
             
@@ -372,7 +359,6 @@
             <!-- Mobile-only elements -->
             <div class="mobile-crosshair" id="mobileCrosshair"></div>
             <div class="mobile-center-coords" id="mobileCenterCoords">-- --</div>
-            <button class="mobile-add-point" id="mobileAddPoint" onclick="addMobileWaypoint()">+</button>
         </div>
         
         <div class="control-panel">
@@ -385,6 +371,9 @@
             
             <button class="btn" id="centerUserBtn" onclick="centerOnUserLocation()">Center On Me</button>
             <button class="btn" id="centerDefaultBtn" onclick="centerOnDefaultLocation()">Default Location</button>
+            
+            <!-- Mobile-only add point button -->
+            <button class="btn mobile-only" id="mobileAddPointBtn" onclick="addMobileWaypoint()">Add Point at Crosshair</button>
             
             <div class="status-panel" id="status">Getting location...</div>
         </div>
