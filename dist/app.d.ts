@@ -1,0 +1,69 @@
+declare const mgrs: any;
+interface Waypoint {
+    position: google.maps.LatLng;
+    number: string;
+    letter: string;
+    marker: google.maps.Marker;
+    nextPoint?: Waypoint;
+}
+interface WaypointData {
+    position: google.maps.LatLng;
+    number: string;
+    letter: string;
+}
+interface PDFWaypointData {
+    number: string;
+    coordinates: string;
+    letter: string;
+    nextCoordinates: string | null;
+    isFinish: boolean;
+}
+declare let map: google.maps.Map;
+declare let waypoints: Waypoint[];
+declare let polyline: google.maps.Polyline | null;
+declare let distanceLabels: google.maps.Marker[];
+declare let isMapReady: boolean;
+declare let redoHistory: WaypointData[];
+declare let undoCount: number;
+declare const MAX_HISTORY_SIZE: number;
+declare let showDistances: boolean;
+declare let userLocation: google.maps.LatLng | null;
+declare let userLocationMarker: google.maps.Marker | null;
+declare let isFirstLocation: boolean;
+declare let lastKnownAccuracy: number;
+declare let locationRetryInterval: number | null;
+declare let retryDisplayInterval: number | null;
+declare let retryCount: number;
+declare let isRetrying: boolean;
+declare let retryStartTime: number;
+declare const DEFAULT_LATITUDE: number;
+declare const DEFAULT_LONGITUDE: number;
+declare let mapInitAttempts: number;
+declare function initMap(): void;
+declare function onMapReady(): void;
+declare function enableButtons(enabled: boolean): void;
+declare function addWaypoint(latLng: google.maps.LatLng): void;
+declare function generateRandomLetter(): string;
+declare function calculateDistance(point1: google.maps.LatLng, point2: google.maps.LatLng): number;
+declare function addDistanceLabels(): void;
+declare function toggleDistances(): void;
+declare function updateConnections(): void;
+declare function clearWaypoints(): void;
+declare function invertRoute(): void;
+declare function undo(): void;
+declare function redo(): void;
+declare function updateWaypointNumbering(): void;
+declare function clearHistory(): void;
+declare function generatePDF(): void;
+declare function generatePDFWithJsPDF(): void;
+declare function convertToUTM(latitude: number, longitude: number): string;
+declare function showStatus(message: string, type?: 'info' | 'error' | 'warning' | 'success'): void;
+declare function showLocationStatus(message: string, type?: 'info' | 'error' | 'warning' | 'success'): void;
+declare function startLocationRetry(): void;
+declare function clearLocationRetry(): void;
+declare function startWatchPosition(): void;
+declare function startLocationTracking(): void;
+declare function updateUserLocation(position: GeolocationPosition): void;
+declare function handleLocationError(error: GeolocationPositionError): void;
+declare function centerOnUserLocation(): void;
+declare function centerOnDefaultLocation(): void;
