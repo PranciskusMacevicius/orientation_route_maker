@@ -117,6 +117,87 @@
             touch-action: none;
         }
 
+        /* Mobile-only crosshair */
+        .mobile-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border: 2px solid #ff0000;
+            border-radius: 50%;
+            z-index: 1001;
+            pointer-events: none;
+            display: none;
+        }
+
+        .mobile-crosshair::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: #ff0000;
+        }
+
+        .mobile-crosshair::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 2px;
+            background: #ff0000;
+        }
+
+        /* Mobile-only center coordinates */
+        .mobile-center-coords {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, calc(-50% - 40px));
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1002;
+            pointer-events: none;
+            display: none;
+            white-space: nowrap;
+        }
+
+        /* Mobile-only add point button */
+        .mobile-add-point {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, calc(-50% + 40px));
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1003;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+
+        .mobile-add-point:hover {
+            background: #3367D6;
+            transform: translate(-50%, calc(-50% + 40px)) scale(1.1);
+        }
+
         .status-message {
             position: absolute;
             top: 50%;
@@ -190,9 +271,16 @@
                 flex-direction: row;
                 flex-wrap: wrap;
                 padding: 10px;
-                padding-bottom: 40px; /* Fallback for older browsers */
-                padding-bottom: max(40px, env(safe-area-inset-bottom) + 10px);
+                padding-bottom: 60px; /* Fallback for older browsers */
+                padding-bottom: max(60px, env(safe-area-inset-bottom) + 30px);
                 gap: 8px;
+            }
+
+            /* Show mobile-only elements */
+            .mobile-crosshair,
+            .mobile-center-coords,
+            .mobile-add-point {
+                display: block;
             }
             
             .btn {
@@ -224,8 +312,8 @@
         @media (max-width: 480px) {
             .control-panel {
                 padding: 8px;
-                padding-bottom: 40px; /* Fallback for older browsers */
-                padding-bottom: max(40px, env(safe-area-inset-bottom) + 8px);
+                padding-bottom: 60px; /* Fallback for older browsers */
+                padding-bottom: max(60px, env(safe-area-inset-bottom) + 30px);
                 gap: 6px;
             }
             
@@ -280,6 +368,11 @@
             <div class="coordinate-display" id="coordinateDisplay">-- --</div>
             <div class="loading" id="loading">Loading Google Maps...</div>
             <div class="status-message" id="statusMessage"></div>
+            
+            <!-- Mobile-only elements -->
+            <div class="mobile-crosshair" id="mobileCrosshair"></div>
+            <div class="mobile-center-coords" id="mobileCenterCoords">-- --</div>
+            <button class="mobile-add-point" id="mobileAddPoint" onclick="addMobileWaypoint()">+</button>
         </div>
         
         <div class="control-panel">

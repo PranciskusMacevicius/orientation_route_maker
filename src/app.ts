@@ -44,6 +44,10 @@ let retryCount: number = 0;
 let isRetrying: boolean = false;
 let retryStartTime: number = 0;
 
+// Mobile-specific variables
+let isMobile: boolean = false;
+let mapCenterListener: google.maps.MapsEventListener | null = null;
+
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
 const DEFAULT_LONGITUDE: number = 24.370464;
@@ -163,6 +167,9 @@ function onMapReady(): void {
 
     // Start automatic location tracking
     startLocationTracking();
+
+    // Mobile-specific setup
+    setupMobileFeatures();
 }
 
 function enableButtons(enabled: boolean): void {
@@ -1031,6 +1038,63 @@ function centerOnDefaultLocation(): void {
     map.setCenter(defaultLocation);
     map.setZoom(13);
     showStatus('Centered on default location', 'info');
+}
+
+// Mobile-specific functions
+function setupMobileFeatures(): void {
+    // Detect if we're on mobile
+    isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+        console.log('Mobile features enabled');
+
+        // Set up single-finger map control
+        map.setOptions({
+            gestureHandling: 'greedy', // Allow single-finger panning
+            zoomControl: true,
+            scrollwheel: true,
+            disableDoubleClickZoom: false
+        });
+
+        // Set up center coordinate tracking
+        setupMobileCenterTracking();
+    }
+}
+
+function setupMobileCenterTracking(): void {
+    // Update center coordinates when map moves
+    mapCenterListener = map.addListener('center_changed', () => {
+        updateMobileCenterCoords();
+    });
+
+    // Initial update
+    updateMobileCenterCoords();
+}
+
+function updateMobileCenterCoords(): void {
+    if (!isMobile) return;
+
+    const center = map.getCenter();
+    if (center) {
+        const lat = center.lat();
+        const lng = center.lng();
+        const mgrsCoords = convertToUTM(lat, lng);
+
+        const mobileCenterCoords = document.getElementById('mobileCenterCoords');
+        if (mobileCenterCoords) {
+            mobileCenterCoords.textContent = mgrsCoords;
+        }
+    }
+}
+
+function addMobileWaypoint(): void {
+    if (!isMobile) return;
+
+    const center = map.getCenter();
+    if (center) {
+        addWaypoint(center);
+        showStatus('Waypoint added at crosshair center', 'success');
+    }
 }
 
 // Initialize buttons as disabled
