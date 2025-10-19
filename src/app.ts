@@ -983,7 +983,7 @@ function updateUserLocation(position: GeolocationPosition): void {
 
     // Show location found message but don't center the map
     if (isFirstLocation) {
-        showStatus(`Location found: ${lat.toFixed(6)}, ${lng.toFixed(6)}`, 'success');
+        // No message shown for first location
         isFirstLocation = false;
     } else {
         console.log('Location updated:', lat, lng);
