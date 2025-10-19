@@ -814,7 +814,7 @@ function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'succe
 
 function showLocationStatus(message: string, type: 'info' | 'error' | 'warning' | 'success' = 'info'): void {
     // Don't update status panel during retries unless it's a retry message
-    if (isRetrying && !message.includes('Retrying')) {
+    if (isRetrying && !message.includes('Retrying') && !message.includes('Trying')) {
         console.log('Blocked status update during retry:', message);
         return;
     }
@@ -837,12 +837,17 @@ function startLocationRetry(): void {
     retryCount = 0;
     isRetrying = true;
     retryStartTime = Date.now();
-    showLocationStatus('Retrying To Get Location...', 'warning');
+    // Show different message based on whether we have a location or not
+    const initialMessage = userLocation ? 'Trying To Update Location...' : 'Trying To Get Location...';
+    showLocationStatus(initialMessage, 'warning');
 
     // Update display every second
     retryDisplayInterval = window.setInterval(() => {
         const retrySeconds = Math.floor((Date.now() - retryStartTime) / 1000);
-        showLocationStatus(`Retrying To Get Location... (${retrySeconds}s)`, 'warning');
+
+        // Use different message based on whether we have a location or not
+        const baseMessage = userLocation ? 'Trying To Update Location...' : 'Trying To Get Location...';
+        showLocationStatus(`${baseMessage} (${retrySeconds}s)`, 'warning');
     }, 1000);
 
     // Try to get location every 5 seconds
