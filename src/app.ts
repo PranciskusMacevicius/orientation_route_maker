@@ -1019,7 +1019,6 @@ function handleLocationError(error: GeolocationPositionError): void {
 function centerOnUserLocation(): void {
     if (userLocation) {
         map.setCenter(userLocation);
-        map.setZoom(15);
         showStatus('Centered on your location', 'info');
     } else {
         // Just show error message, don't trigger location updates
