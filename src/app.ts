@@ -1134,7 +1134,7 @@ function addUserLocationWaypoint(): void {
     if (userLocation) {
         console.log('Adding waypoint at user location:', userLocation.lat(), userLocation.lng());
         addWaypoint(userLocation);
-        showStatus('Waypoint added at your location', 'success');
+        // No success message for adding location waypoint
     } else {
         showStatus('No location available. Please wait for location tracking to start.', 'warning');
     }
@@ -1148,7 +1148,7 @@ function toggleLocationLock(): void {
         if (userLocation) {
             // Start location lock
             map.setCenter(userLocation);
-            showStatus('Location lock enabled - map will follow your movement', 'success');
+            // No success message for location lock
             lockBtn!.textContent = 'Unlock from My Location';
             lockBtn!.style.background = 'rgba(255, 193, 7, 0.9)'; // Yellow background when locked
         } else {
@@ -1163,7 +1163,7 @@ function toggleLocationLock(): void {
             google.maps.event.removeListener(locationLockListener);
             locationLockListener = null;
         }
-        showStatus('Location lock disabled', 'info');
+        // No info message for location lock disabled
         lockBtn!.textContent = 'Lock to My Location';
         lockBtn!.style.background = 'rgba(255, 255, 255, 0.9)'; // Normal background
     }
