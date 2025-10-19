@@ -51,6 +51,8 @@ let mapCenterListener: google.maps.MapsEventListener | null = null;
 // Location lock variables
 let isLocationLocked: boolean = false;
 let locationLockListener: google.maps.MapsEventListener | null = null;
+let lastLocationLockUpdate: number = 0;
+const LOCATION_LOCK_INTERVAL: number = 3000; // 3 seconds
 
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
@@ -1010,9 +1012,14 @@ function updateUserLocation(position: GeolocationPosition): void {
         }
     }
 
-    // Auto-center map if location lock is enabled
+    // Auto-center map if location lock is enabled (throttled to 3 seconds)
     if (isLocationLocked) {
-        map.setCenter(userLocation);
+        const now = Date.now();
+        if (now - lastLocationLockUpdate >= LOCATION_LOCK_INTERVAL) {
+            map.setCenter(userLocation);
+            lastLocationLockUpdate = now;
+            console.log('Location lock update (throttled to 3s)');
+        }
     }
 
     console.log('User location:', lat, lng);
@@ -1148,6 +1155,7 @@ function toggleLocationLock(): void {
         if (userLocation) {
             // Start location lock
             map.setCenter(userLocation);
+            lastLocationLockUpdate = Date.now(); // Reset the throttle timer
             // No success message for location lock
             lockBtn!.textContent = 'Unlock from My Location';
             lockBtn!.style.background = 'rgba(255, 193, 7, 0.9)'; // Yellow background when locked
@@ -1163,6 +1171,7 @@ function toggleLocationLock(): void {
             google.maps.event.removeListener(locationLockListener);
             locationLockListener = null;
         }
+        lastLocationLockUpdate = 0; // Reset the throttle timer
         // No info message for location lock disabled
         lockBtn!.textContent = 'Lock to My Location';
         lockBtn!.style.background = 'rgba(255, 255, 255, 0.9)'; // Normal background

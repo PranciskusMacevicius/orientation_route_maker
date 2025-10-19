@@ -40,6 +40,8 @@ declare let isMobile: boolean;
 declare let mapCenterListener: google.maps.MapsEventListener | null;
 declare let isLocationLocked: boolean;
 declare let locationLockListener: google.maps.MapsEventListener | null;
+declare let lastLocationLockUpdate: number;
+declare const LOCATION_LOCK_INTERVAL: number;
 declare const DEFAULT_LATITUDE: number;
 declare const DEFAULT_LONGITUDE: number;
 declare let mapInitAttempts: number;
