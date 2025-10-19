@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Orientation Route Maker - TypeScript</title>
     <link rel="icon" type="image/png" href="icon.png">
     <style>
@@ -17,6 +17,13 @@
             height: 100vh;
             overflow: hidden;
             background-color: #f0f0f0;
+            -webkit-text-size-adjust: 100%;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         .container {
@@ -65,6 +72,8 @@
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             text-align: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:hover {
@@ -105,6 +114,7 @@
             pointer-events: none;
             width: auto;
             min-width: auto;
+            touch-action: none;
         }
 
         .status-message {
@@ -180,12 +190,81 @@
                 flex-direction: row;
                 flex-wrap: wrap;
                 padding: 10px;
+                gap: 8px;
             }
             
             .btn {
                 flex: 1;
-                min-width: 120px;
+                min-width: 100px;
                 margin: 2px;
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+            
+            .btn.two-line {
+                padding: 8px 6px;
+                font-size: 11px;
+            }
+            
+            .coordinate-display {
+                font-size: 12px;
+                padding: 6px 10px;
+                top: 5px;
+            }
+            
+            .status-panel {
+                font-size: 12px;
+                padding: 8px;
+                min-height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .control-panel {
+                padding: 8px;
+                gap: 6px;
+            }
+            
+            .btn {
+                min-width: 80px;
+                padding: 8px 6px;
+                font-size: 11px;
+                margin: 1px;
+            }
+            
+            .btn.two-line {
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+            
+            .coordinate-display {
+                font-size: 11px;
+                padding: 4px 8px;
+                top: 3px;
+            }
+            
+            .status-panel {
+                font-size: 11px;
+                padding: 6px;
+                min-height: 35px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .btn {
+                min-width: 70px;
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+            
+            .btn.two-line {
+                padding: 5px 3px;
+                font-size: 9px;
+            }
+            
+            .coordinate-display {
+                font-size: 10px;
+                padding: 3px 6px;
             }
         }
     </style>
