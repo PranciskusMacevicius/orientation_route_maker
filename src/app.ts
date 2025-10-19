@@ -37,6 +37,7 @@ let showDistances: boolean = true;
 let userLocation: google.maps.LatLng | null = null;
 let userLocationMarker: google.maps.Marker | null = null;
 let isFirstLocation: boolean = true;
+let lastKnownAccuracy: number = 0;
 let locationRetryInterval: number | null = null;
 let retryDisplayInterval: number | null = null;
 let retryCount: number = 0;
@@ -847,7 +848,14 @@ function startLocationRetry(): void {
 
         // Use different message based on whether we have a location or not
         const baseMessage = userLocation ? 'Trying To Update Location...' : 'Trying To Get Location...';
-        showLocationStatus(`${baseMessage} (${retrySeconds}s)`, 'warning');
+        let retryMessage = `${baseMessage} (${retrySeconds}s)`;
+
+        // If we have a last known location, show its accuracy too
+        if (userLocation && lastKnownAccuracy > 0) {
+            retryMessage += `. Last Known Location Accuracy: ${Math.round(lastKnownAccuracy)}m`;
+        }
+
+        showLocationStatus(retryMessage, 'warning');
     }, 1000);
 
     // Try to get location every 5 seconds
@@ -975,6 +983,9 @@ function updateUserLocation(position: GeolocationPosition): void {
         // Only update status panel if not currently retrying to avoid interrupting retry messages
         const accuracy = position.coords.accuracy;
         console.log('Location accuracy:', accuracy, 'm');
+
+        // Store the accuracy for retry display
+        lastKnownAccuracy = accuracy;
 
         // Only show accuracy if not in retry mode
         if (!isRetrying) {
