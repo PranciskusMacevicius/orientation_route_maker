@@ -880,7 +880,7 @@ function startWatchPosition(): void {
         {
             enableHighAccuracy: true,
             timeout: 30000,
-            maximumAge: 60000
+            maximumAge: 3000 // Update every 3 seconds
         }
     );
 }
@@ -912,7 +912,7 @@ function startLocationTracking(): void {
         {
             enableHighAccuracy: true,
             timeout: 30000, // Longer timeout
-            maximumAge: 60000 // Update every minute
+            maximumAge: 3000 // Update every 3 seconds
         }
     );
 }
