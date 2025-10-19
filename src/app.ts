@@ -39,6 +39,7 @@ let userLocationMarker: google.maps.Marker | null = null;
 let isFirstLocation: boolean = true;
 let locationRetryInterval: number | null = null;
 let retryCount: number = 0;
+let isRetrying: boolean = false;
 
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
@@ -816,6 +817,12 @@ function showStatus(message: string, type: 'info' | 'error' | 'warning' | 'succe
 }
 
 function showLocationStatus(message: string, type: 'info' | 'error' | 'warning' | 'success' = 'info'): void {
+    // Don't update status panel during retries unless it's a retry message
+    if (isRetrying && !message.includes('Retrying')) {
+        console.log('Blocked status update during retry:', message);
+        return;
+    }
+
     const statusEl = document.getElementById('status');
     if (statusEl) {
         statusEl.textContent = message;
@@ -832,6 +839,7 @@ function startLocationRetry(): void {
     }
 
     retryCount = 0;
+    isRetrying = true;
     showLocationStatus('Retrying To Get Location...', 'warning');
 
     locationRetryInterval = window.setInterval(() => {
@@ -865,6 +873,7 @@ function clearLocationRetry(): void {
         clearInterval(locationRetryInterval);
         locationRetryInterval = null;
         retryCount = 0;
+        isRetrying = false;
     }
 }
 
@@ -949,9 +958,14 @@ function updateUserLocation(position: GeolocationPosition): void {
         isFirstLocation = false;
     } else {
         console.log('Location updated:', lat, lng);
-        // Show that location tracking is working with accuracy
+        // Only update status panel if not currently retrying to avoid interrupting retry messages
         const accuracy = position.coords.accuracy;
-        showLocationStatus(`Location tracking active (accuracy: ${Math.round(accuracy)}m)`, 'success');
+        console.log('Location accuracy:', accuracy, 'm');
+
+        // Only show accuracy if not in retry mode
+        if (!isRetrying) {
+            showLocationStatus(`Location tracking active (accuracy: ${Math.round(accuracy)}m)`, 'success');
+        }
     }
 
     console.log('User location:', lat, lng);
@@ -983,30 +997,8 @@ function centerOnUserLocation(): void {
         map.setZoom(15);
         showStatus('Centered on your location', 'info');
     } else {
-        showStatus('No location available. Requesting location...', 'info');
-        showLocationStatus('Getting Location...', 'info');
-        // Retry getting location
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                updateUserLocation(position);
-                map.setCenter(userLocation!);
-                map.setZoom(15);
-                showStatus('Centered on your location', 'success');
-                const accuracy = position.coords.accuracy;
-                showLocationStatus(`Location tracking active (accuracy: ${Math.round(accuracy)}m)`, 'success');
-                startWatchPosition();
-            },
-            (error) => {
-                handleLocationError(error);
-                showLocationStatus('Unable To Get Location', 'error');
-                startLocationRetry();
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
+        // Just show error message, don't trigger location updates
+        showStatus('No location available. Please wait for location tracking to start.', 'warning');
     }
 }
 
