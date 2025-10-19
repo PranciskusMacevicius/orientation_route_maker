@@ -219,13 +219,8 @@ function addDistanceLabels(): void {
         const midLat = (point1.lat() + point2.lat()) / 2;
         const midLng = (point1.lng() + point2.lng()) / 2;
 
-        // Format distance (meters to appropriate unit)
-        let distanceText: string;
-        if (distance < 1000) {
-            distanceText = Math.round(distance) + 'm';
-        } else {
-            distanceText = (distance / 1000).toFixed(1) + 'km';
-        }
+        // Format distance (always in meters)
+        const distanceText = Math.round(distance) + 'm';
 
         // Create distance label
         const label = new google.maps.Marker({
