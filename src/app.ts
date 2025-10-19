@@ -250,7 +250,6 @@ function toggleDistances(): void {
     const btn = document.getElementById('toggleDistancesBtn');
     if (btn) {
         btn.textContent = showDistances ? 'Hide Distances' : 'Show Distances';
-        btn.style.background = showDistances ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.5)';
     }
 }
 
