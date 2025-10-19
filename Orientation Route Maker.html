@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Orientation Route Maker - TypeScript</title>
     <link rel="icon" type="image/png" href="icon.png">
     <style>
@@ -190,6 +190,8 @@
                 flex-direction: row;
                 flex-wrap: wrap;
                 padding: 10px;
+                padding-bottom: 40px; /* Fallback for older browsers */
+                padding-bottom: max(40px, env(safe-area-inset-bottom) + 10px);
                 gap: 8px;
             }
             
@@ -222,6 +224,8 @@
         @media (max-width: 480px) {
             .control-panel {
                 padding: 8px;
+                padding-bottom: 40px; /* Fallback for older browsers */
+                padding-bottom: max(40px, env(safe-area-inset-bottom) + 8px);
                 gap: 6px;
             }
             
