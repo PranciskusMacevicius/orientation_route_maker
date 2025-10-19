@@ -48,6 +48,10 @@ let retryStartTime: number = 0;
 let isMobile: boolean = false;
 let mapCenterListener: google.maps.MapsEventListener | null = null;
 
+// Location lock variables
+let isLocationLocked: boolean = false;
+let locationLockListener: google.maps.MapsEventListener | null = null;
+
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
 const DEFAULT_LONGITUDE: number = 24.370464;
@@ -1000,6 +1004,11 @@ function updateUserLocation(position: GeolocationPosition): void {
         }
     }
 
+    // Auto-center map if location lock is enabled
+    if (isLocationLocked) {
+        map.setCenter(userLocation);
+    }
+
     console.log('User location:', lat, lng);
 }
 
@@ -1115,8 +1124,49 @@ function addMobileWaypoint(): void {
     }
 }
 
-// Make function globally accessible
+function addUserLocationWaypoint(): void {
+    if (userLocation) {
+        console.log('Adding waypoint at user location:', userLocation.lat(), userLocation.lng());
+        addWaypoint(userLocation);
+        showStatus('Waypoint added at your location', 'success');
+    } else {
+        showStatus('No location available. Please wait for location tracking to start.', 'warning');
+    }
+}
+
+function toggleLocationLock(): void {
+    isLocationLocked = !isLocationLocked;
+    const lockBtn = document.getElementById('locationLockBtn');
+
+    if (isLocationLocked) {
+        if (userLocation) {
+            // Start location lock
+            map.setCenter(userLocation);
+            showStatus('Location lock enabled - map will follow your movement', 'success');
+            lockBtn!.textContent = 'Unlock from My Location';
+            lockBtn!.style.background = 'rgba(255, 193, 7, 0.9)'; // Yellow background when locked
+        } else {
+            // No location available, revert toggle
+            isLocationLocked = false;
+            showStatus('No location available for locking', 'warning');
+            return;
+        }
+    } else {
+        // Stop location lock
+        if (locationLockListener) {
+            google.maps.event.removeListener(locationLockListener);
+            locationLockListener = null;
+        }
+        showStatus('Location lock disabled', 'info');
+        lockBtn!.textContent = 'Lock to My Location';
+        lockBtn!.style.background = 'rgba(255, 255, 255, 0.9)'; // Normal background
+    }
+}
+
+// Make functions globally accessible
 (window as any).addMobileWaypoint = addMobileWaypoint;
+(window as any).addUserLocationWaypoint = addUserLocationWaypoint;
+(window as any).toggleLocationLock = toggleLocationLock;
 
 // Initialize buttons as disabled
 document.addEventListener('DOMContentLoaded', function () {
