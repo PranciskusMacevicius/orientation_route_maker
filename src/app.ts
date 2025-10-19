@@ -38,8 +38,10 @@ let userLocation: google.maps.LatLng | null = null;
 let userLocationMarker: google.maps.Marker | null = null;
 let isFirstLocation: boolean = true;
 let locationRetryInterval: number | null = null;
+let retryDisplayInterval: number | null = null;
 let retryCount: number = 0;
 let isRetrying: boolean = false;
+let retryStartTime: number = 0;
 
 // Default coordinates for Rukla, Lithuania
 const DEFAULT_LATITUDE: number = 55.030180;
@@ -834,11 +836,19 @@ function startLocationRetry(): void {
 
     retryCount = 0;
     isRetrying = true;
+    retryStartTime = Date.now();
     showLocationStatus('Retrying To Get Location...', 'warning');
 
+    // Update display every second
+    retryDisplayInterval = window.setInterval(() => {
+        const retrySeconds = Math.floor((Date.now() - retryStartTime) / 1000);
+        showLocationStatus(`Retrying To Get Location... (${retrySeconds}s)`, 'warning');
+    }, 1000);
+
+    // Try to get location every 5 seconds
     locationRetryInterval = window.setInterval(() => {
         retryCount++;
-        showLocationStatus(`Retrying To Get Location... (Attempt: ${retryCount})`, 'warning');
+        console.log('Retry attempt:', retryCount);
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -859,16 +869,21 @@ function startLocationRetry(): void {
                 maximumAge: 0 // Force fresh location
             }
         );
-    }, 5000); // Retry every 5 seconds
+    }, 5000); // Try location every 5 seconds
 }
 
 function clearLocationRetry(): void {
     if (locationRetryInterval !== null) {
         clearInterval(locationRetryInterval);
         locationRetryInterval = null;
-        retryCount = 0;
-        isRetrying = false;
     }
+    if (retryDisplayInterval !== null) {
+        clearInterval(retryDisplayInterval);
+        retryDisplayInterval = null;
+    }
+    retryCount = 0;
+    isRetrying = false;
+    retryStartTime = 0;
 }
 
 function startWatchPosition(): void {
