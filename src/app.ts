@@ -831,6 +831,12 @@ function showLocationStatus(message: string, type: 'info' | 'error' | 'warning' 
         return;
     }
 
+    // Don't update status panel if location tracking is active and it's not a critical message
+    if (userLocation && !message.includes('Location tracking active') && !message.includes('Location updates unavailable') && !message.includes('Unable')) {
+        console.log('Blocked status update during active location tracking:', message);
+        return;
+    }
+
     const statusEl = document.getElementById('status');
     if (statusEl) {
         statusEl.textContent = message;
